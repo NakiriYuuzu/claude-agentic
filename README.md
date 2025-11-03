@@ -4,11 +4,14 @@
 
 ## ✨ 功能特點
 
-- ✅ **SQLite 資料庫**：使用 Bun SQLite 儲存工作空間設定
+- ✅ **SQLite 資料庫**：使用 Bun SQLite 儲存工作空間設定與 session 歷史
 - ✅ **完整 CRUD API**：透過 REST API 管理設定
 - ✅ **多工作空間支援**：每個工作路徑獨立設定
 - ✅ **自動設定載入**：查詢時自動套用對應設定
 - ✅ **SSE 串流回應**：即時串流 Agent 執行結果
+- ✅ **Session 管理**：自動記錄對話歷史、支援查詢統計與恢復對話
+- ✅ **非同步記錄佇列**：高效能的批次寫入，不影響 SSE 效能
+- ✅ **Resume 功能**：繼續先前的對話，支援指定 session 或自動繼續
 - ✅ **結構化日誌系統**：Pino + Console/檔案雙輸出 + Request ID 追蹤
 - ✅ **Swagger UI**：內建 API 文件介面
 - ✅ **型別安全**：完整的 TypeScript 支援
@@ -205,6 +208,111 @@ event: complete
 data: {"timestamp":"2025-11-02T..."}
 ```
 
+### Session 管理
+
+Session 管理功能自動記錄所有 Agent 查詢的完整對話歷史，支援查詢、統計和恢復對話。
+
+#### 1. 列出 Sessions
+
+```bash
+GET /api/sessions?workspace_path=/path&status=completed&limit=50&offset=0
+```
+
+**Query Parameters**：
+
+| 參數 | 類型 | 說明 |
+|------|------|------|
+| `workspace_path` | string | 過濾指定工作空間（選填） |
+| `status` | `running`/`completed`/`error`/`interrupted` | 過濾狀態（選填） |
+| `limit` | number | 每頁數量（預設 50） |
+| `offset` | number | 分頁偏移（預設 0） |
+| `order_by` | `created_at`/`updated_at`/`total_cost_usd` | 排序欄位 |
+| `order` | `asc`/`desc` | 排序方向 |
+
+#### 2. 取得 Session 詳情
+
+```bash
+GET /api/sessions/:session_id
+```
+
+#### 3. 取得 Session 訊息
+
+```bash
+GET /api/sessions/:session_id/messages?message_type=assistant&limit=100
+```
+
+#### 4. 取得統計資訊
+
+```bash
+GET /api/sessions/stats?workspace_path=/path
+```
+
+**回應範例**：
+
+```json
+{
+  "success": true,
+  "data": {
+    "total_sessions": 50,
+    "completed_sessions": 45,
+    "error_sessions": 5,
+    "total_cost_usd": 2.5,
+    "total_turns": 150,
+    "average_duration_ms": 5000,
+    "most_used_tools": [
+      { "tool": "Read", "count": 120 },
+      { "tool": "Write", "count": 85 }
+    ]
+  }
+}
+```
+
+#### 5. 刪除 Session
+
+```bash
+DELETE /api/sessions/:session_id
+```
+
+#### 6. Resume 對話（繼續先前的 Session）
+
+**指定 Session ID 繼續**：
+
+```json
+POST /api/query
+{
+  "workspacePath": "/path",
+  "prompt": "繼續剛才的討論",
+  "options": {
+    "resume": "session_abc123"
+  }
+}
+```
+
+**自動繼續最近的 Session**：
+
+```json
+POST /api/query
+{
+  "workspacePath": "/path",
+  "prompt": "繼續剛才的討論",
+  "options": {
+    "continue": true
+  }
+}
+```
+
+### Session 配置
+
+在 `.env` 中可設定 Session 記錄行為：
+
+```env
+# Session 批次大小（訊息數量達到此值時批次寫入）
+SESSION_BATCH_SIZE=50
+
+# Session flush 間隔（毫秒）
+SESSION_FLUSH_INTERVAL=1000
+```
+
 ## 💻 使用範例
 
 ### JavaScript/TypeScript 客戶端
@@ -333,6 +441,62 @@ CREATE TABLE workspace_settings (
     FOREIGN KEY (workspace_path) REFERENCES workspaces(workspace_path) ON DELETE CASCADE
 )
 ```
+
+### sessions 表
+
+```sql
+CREATE TABLE sessions (
+    session_id TEXT PRIMARY KEY,
+    workspace_path TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+    completed_at TEXT,
+    status TEXT NOT NULL DEFAULT 'running',  -- running, completed, error, interrupted
+
+    -- Session 配置
+    model TEXT,
+    permission_mode TEXT,
+    cwd TEXT,
+    tools TEXT,              -- JSON array
+    mcp_servers TEXT,        -- JSON array
+
+    -- 執行結果
+    total_cost_usd REAL DEFAULT 0,
+    num_turns INTEGER DEFAULT 0,
+    duration_ms INTEGER,
+    duration_api_ms INTEGER,
+    is_error INTEGER DEFAULT 0,
+    error_message TEXT,
+
+    -- 統計
+    message_count INTEGER DEFAULT 0,
+
+    FOREIGN KEY (workspace_path) REFERENCES workspaces(workspace_path) ON DELETE CASCADE
+)
+```
+
+### session_messages 表
+
+```sql
+CREATE TABLE session_messages (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    session_id TEXT NOT NULL,
+    uuid TEXT NOT NULL UNIQUE,
+    message_type TEXT NOT NULL,       -- system, user, assistant, result
+    message_subtype TEXT,
+    message_content TEXT NOT NULL,    -- 完整 JSON
+    tools_used TEXT,                  -- JSON array (自動提取)
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (session_id) REFERENCES sessions(session_id) ON DELETE CASCADE
+)
+```
+
+**特點**：
+- **自動記錄**：每次 query 自動建立 session 並記錄所有訊息
+- **非同步寫入**：使用記憶體佇列批次寫入，不影響 SSE 效能
+- **完整歷史**：儲存完整的 message JSON，可完整重現對話
+- **工具追蹤**：自動提取並記錄每個訊息使用的工具
+- **自動清理**：定期清理超過 24 小時的 `running` 狀態 session
 
 ## 🧪 測試
 

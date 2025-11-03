@@ -6,14 +6,26 @@
 import { Database } from 'bun:sqlite'
 import type { WorkspaceSettings, WorkspaceSettingsRow, WorkspaceListItem } from '../types/settings.types'
 import { logger } from '../utils/logger'
+import { SessionService } from './session.service'
 
 export class DatabaseService {
     private db: Database
+    private _sessionService: SessionService | null = null
 
     constructor(dbPath: string = './data/settings.db') {
         this.db = new Database(dbPath, { create: true })
         logger.info({ event: 'db_connecting', path: dbPath }, 'Connecting to database')
         this.initialize()
+    }
+
+    /**
+     * 取得 SessionService 實例
+     */
+    get sessionService(): SessionService {
+        if (!this._sessionService) {
+            this._sessionService = new SessionService(this.db)
+        }
+        return this._sessionService
     }
 
     /**

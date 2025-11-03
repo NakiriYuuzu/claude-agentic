@@ -6,6 +6,7 @@
 import { Elysia, t } from 'elysia'
 import { AgentService } from '../services/agent.service'
 import type { SettingsService } from '../services/settings.service'
+import type { SessionRecorder } from '../services/session-recorder'
 
 /**
  * 格式化為 SSE 事件
@@ -21,8 +22,15 @@ function truncatePrompt(prompt: string, maxLength: number = 50): string {
     return prompt.length > maxLength ? prompt.slice(0, maxLength) + '...' : prompt
 }
 
-export const createQueryRoutes = (settingsService: SettingsService) => {
-    const agentService = new AgentService(settingsService)
+export const createQueryRoutes = (
+    settingsService: SettingsService,
+    sessionRecorder?: SessionRecorder
+) => {
+    // 傳入 DatabaseService 以支援 Resume 功能
+    const agentService = new AgentService(
+        settingsService,
+        settingsService.getDatabase()
+    )
 
     return new Elysia({ prefix: '/api' })
 
@@ -30,7 +38,7 @@ export const createQueryRoutes = (settingsService: SettingsService) => {
          * POST /api/query
          * 執行 Agent 查詢（SSE 串流回應）
          */
-        .post('/query', async function* ({ body, set, log, requestId }) {
+        .post('/query', async function* ({ body, set, log, fileLogger, requestId }) {
             const startTime = Date.now()
 
             // 設定 SSE headers
@@ -39,16 +47,17 @@ export const createQueryRoutes = (settingsService: SettingsService) => {
             set.headers['Connection'] = 'keep-alive'
 
             // 記錄查詢開始
-            log.info(
-                {
-                    event: 'query_start',
-                    requestId,
-                    workspacePath: body.workspacePath,
-                    promptPreview: truncatePrompt(body.prompt),
-                    options: body.options
-                },
-                'Agent query started'
-            )
+            const queryStartLog = {
+                event: 'query_start',
+                requestId,
+                workspacePath: body.workspacePath,
+                promptPreview: truncatePrompt(body.prompt),
+                options: body.options,
+                resume: body.options?.resume,
+                continue: body.options?.continue
+            }
+            log.info(queryStartLog, 'Agent query started')
+            fileLogger.info(queryStartLog, 'Agent query started')
 
             try {
                 // 送出初始化事件
@@ -58,7 +67,12 @@ export const createQueryRoutes = (settingsService: SettingsService) => {
                 })
 
                 // 執行查詢並串流結果
-                for await (const message of agentService.executeQuery(body)) {
+                // 如果有 sessionRecorder，使用它來記錄 session
+                const queryGenerator = sessionRecorder
+                    ? sessionRecorder.recordQuery(agentService, body)
+                    : agentService.executeQuery(body)
+
+                for await (const message of queryGenerator) {
                     // 根據訊息類型格式化不同的 SSE 事件
                     switch (message.type) {
                         case 'system':
@@ -101,15 +115,14 @@ export const createQueryRoutes = (settingsService: SettingsService) => {
                 })
 
                 // 記錄查詢完成
-                log.info(
-                    {
-                        event: 'query_complete',
-                        requestId,
-                        workspacePath: body.workspacePath,
-                        duration_ms: duration
-                    },
-                    'Agent query completed'
-                )
+                const completeLog = {
+                    event: 'query_complete',
+                    requestId,
+                    workspacePath: body.workspacePath,
+                    duration_ms: duration
+                }
+                log.info(completeLog, 'Agent query completed')
+                fileLogger.info(completeLog, 'Agent query completed')
 
             } catch (error: any) {
                 const duration = Date.now() - startTime
@@ -132,6 +145,16 @@ export const createQueryRoutes = (settingsService: SettingsService) => {
                     error: error.message || 'Query execution failed',
                     timestamp: new Date().toISOString()
                 })
+
+                // 記錄錯誤到 fileLogger
+                const errorLog = {
+                    event: 'query_error',
+                    requestId,
+                    workspacePath: body.workspacePath,
+                    error: error.message,
+                    duration_ms: duration
+                }
+                fileLogger.error(errorLog, 'Agent query failed')
             }
         }, {
             body: t.Object({
@@ -147,12 +170,15 @@ export const createQueryRoutes = (settingsService: SettingsService) => {
                     ])),
                     maxTurns: t.Optional(t.Number()),
                     allowedTools: t.Optional(t.Array(t.String())),
-                    disallowedTools: t.Optional(t.Array(t.String()))
+                    disallowedTools: t.Optional(t.Array(t.String())),
+                    // Resume 功能
+                    resume: t.Optional(t.String({ minLength: 1 })), // Session ID to resume
+                    continue: t.Optional(t.Boolean()) // Continue from last session
                 }))
             }),
             detail: {
                 summary: '執行 Agent 查詢',
-                description: '使用 Server-Sent Events 串流回應 Agent 查詢結果',
+                description: '使用 Server-Sent Events 串流回應 Agent 查詢結果。支援 resume 參數繼續指定 session，或 continue 參數繼續最近的 session。',
                 tags: ['Query']
             }
         })
