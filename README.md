@@ -275,6 +275,8 @@ DELETE /api/sessions/:session_id
 
 #### 6. Resume 對話（繼續先前的 Session）
 
+Resume 功能使用 Claude Agent SDK 的原生機制，SDK 會自動管理對話歷史。
+
 **指定 Session ID 繼續**：
 
 ```json
@@ -300,6 +302,12 @@ POST /api/query
   }
 }
 ```
+
+**說明**：
+- Resume 功能由 Claude Agent SDK 自動處理
+- SDK 從它的內部儲存載入對話歷史
+- 我們的資料庫記錄用於查詢、統計和審計，不參與 Resume 流程
+- Session ID 來自 SDK，兩個系統共用相同的 session_id
 
 ### Session 配置
 
@@ -497,6 +505,24 @@ CREATE TABLE session_messages (
 - **完整歷史**：儲存完整的 message JSON，可完整重現對話
 - **工具追蹤**：自動提取並記錄每個訊息使用的工具
 - **自動清理**：定期清理超過 24 小時的 `running` 狀態 session
+
+### Session 系統架構
+
+本系統採用**雙軌 Session 架構**：
+
+#### 1. SDK Sessions（Resume 功能）
+- 由 Claude Agent SDK 管理
+- 用於 `resume` 和 `continue` 對話
+- 儲存位置由 SDK 管理（通常在 `.claude` 目錄）
+- 提供穩定的對話恢復功能
+
+#### 2. Database Sessions（記錄與分析）
+- 記錄所有對話歷史到 SQLite
+- 提供查詢、統計和審計功能
+- 支援成本追蹤、工具使用分析
+- 用於歷史回顧和數據分析
+
+**兩個系統共用相同的 `session_id`**，確保記錄的一致性。當使用 Resume 功能時，SDK 會從它的儲存載入對話，而我們的資料庫則提供該 session 的統計資訊。
 
 ## 🧪 測試
 

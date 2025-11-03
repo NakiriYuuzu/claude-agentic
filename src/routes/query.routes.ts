@@ -26,11 +26,8 @@ export const createQueryRoutes = (
     settingsService: SettingsService,
     sessionRecorder?: SessionRecorder
 ) => {
-    // 傳入 DatabaseService 以支援 Resume 功能
-    const agentService = new AgentService(
-        settingsService,
-        settingsService.getDatabase()
-    )
+    // AgentService 使用 SDK 原生 Resume，不需要 DatabaseService
+    const agentService = new AgentService(settingsService)
 
     return new Elysia({ prefix: '/api' })
 
