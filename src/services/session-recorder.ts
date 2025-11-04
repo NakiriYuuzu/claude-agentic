@@ -80,6 +80,9 @@ export class SessionRecorder {
                 },
                 'Session recording completed'
             )
+
+            // 明確結束 generator（修復 ERR_INCOMPLETE_CHUNKED_ENCODING）
+            return
         } catch (queryError: any) {
             // Query 執行失敗
             hasError = true

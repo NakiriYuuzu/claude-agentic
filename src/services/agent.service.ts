@@ -106,7 +106,21 @@ export class AgentService {
             })
 
             // 4. 串流結果
+            let messageCount = 0
             for await (const message of queryResult) {
+                messageCount++
+
+                // 診斷日誌：追蹤每個訊息
+                logger.debug(
+                    {
+                        event: 'agent_message_received',
+                        workspacePath,
+                        message_type: message.type,
+                        message_count: messageCount
+                    },
+                    `Message ${messageCount} received`
+                )
+
                 // 只在重要訊息類型記錄（避免過多日誌）
                 if (message.type === 'system' && message.subtype === 'init') {
                     logger.debug(
@@ -120,7 +134,8 @@ export class AgentService {
                             workspacePath,
                             is_error: (message as any).is_error,
                             num_turns: (message as any).num_turns,
-                            cost_usd: (message as any).total_cost_usd
+                            cost_usd: (message as any).total_cost_usd,
+                            total_messages: messageCount
                         },
                         'Agent query completed'
                     )
@@ -128,6 +143,19 @@ export class AgentService {
 
                 yield message
             }
+
+            // 診斷日誌：確認 generator 正常結束
+            logger.info(
+                {
+                    event: 'agent_generator_completed',
+                    workspacePath,
+                    total_messages: messageCount
+                },
+                'Generator loop completed normally'
+            )
+
+            // 明確結束 generator（修復 ERR_INCOMPLETE_CHUNKED_ENCODING）
+            return
         } catch (error: any) {
             logger.error(
                 {

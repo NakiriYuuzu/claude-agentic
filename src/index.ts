@@ -11,11 +11,11 @@ import { logger as elysiaLogger, fileLogger as elysiaFileLogger } from '@bogeych
 import { SettingsService } from './services/settings.service'
 import { createSettingsRoutes } from './routes/settings.routes'
 import { createQueryRoutes } from './routes/query.routes'
+import { createWebSocketRoutes } from './routes/websocket.routes'
 import { createSessionRoutes } from './routes/session.routes'
 import { createLoggerConfig, fileLoggerPath } from './config/logger.config'
 import { logger } from './utils/logger'
 import { randomUUID } from 'crypto'
-import { createTestSSERoutes } from './routes/test-sse.routes'
 import { SessionQueueService } from './services/session-queue.service'
 import { SessionRecorder } from './services/session-recorder'
 
@@ -120,8 +120,8 @@ const app = new Elysia()
     // 載入路由
     .use(createSettingsRoutes(settingsService.getDatabase()))
     .use(createQueryRoutes(settingsService, sessionRecorder))
+    .use(createWebSocketRoutes(settingsService, sessionRecorder))
     .use(createSessionRoutes(settingsService.getDatabase()))
-    .use(createTestSSERoutes())
 
     // 啟動伺服器
     .listen(PORT)
@@ -136,6 +136,7 @@ logger.info(
     `🦊 Elysia server is running!\n\n` +
     `🌐 API Server: http://${app.server?.hostname}:${PORT}\n` +
     `📚 Swagger UI: http://${app.server?.hostname}:${PORT}/swagger\n` +
+    `🔌 WebSocket: ws://${app.server?.hostname}:${PORT}/api/ws\n` +
     `📊 Health Check: http://${app.server?.hostname}:${PORT}/api/health\n\n` +
     `Press Ctrl+C to stop`
 )
