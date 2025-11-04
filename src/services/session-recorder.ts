@@ -111,8 +111,9 @@ export class SessionRecorder {
 
     /**
      * 處理單一 message
+     * 改為 public 以允許手動記錄使用者輸入訊息
      */
-    private async handleMessage(message: SDKMessage, workspacePath: string): Promise<void> {
+    async handleMessage(message: SDKMessage, workspacePath: string): Promise<void> {
         const sessionId = message.session_id
 
         if (!sessionId) {

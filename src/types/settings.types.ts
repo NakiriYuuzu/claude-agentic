@@ -4,6 +4,12 @@
  */
 
 /**
+ * Setting Source Type
+ * 對應 Claude Agent SDK 的 SettingSource
+ */
+export type SettingSource = 'user' | 'project' | 'local'
+
+/**
  * Agent 定義（簡化版本，對應 Claude Agent SDK）
  */
 export interface AgentDefinition {
@@ -54,6 +60,7 @@ export interface WorkspaceSettings {
     agents?: Record<string, AgentDefinition>
     mcpServers?: Record<string, McpServerConfig>
     hooks?: Partial<Record<HookEvent, HookMatcher[]>>
+    settingSources?: SettingSource[]
     createdAt?: string
     updatedAt?: string
 }
@@ -70,6 +77,7 @@ export interface WorkspaceSettingsRow {
     agents: string | null              // JSON string
     mcp_servers: string | null         // JSON string
     hooks: string | null               // JSON string
+    setting_sources: string | null     // JSON string
     created_at: string
     updated_at: string
 }
@@ -85,6 +93,7 @@ export interface CreateWorkspaceSettingsRequest {
     agents?: Record<string, AgentDefinition>
     mcpServers?: Record<string, McpServerConfig>
     hooks?: Partial<Record<HookEvent, HookMatcher[]>>
+    settingSources?: SettingSource[]
 }
 
 /**
@@ -97,6 +106,7 @@ export interface UpdateWorkspaceSettingsRequest {
     agents?: Record<string, AgentDefinition>
     mcpServers?: Record<string, McpServerConfig>
     hooks?: Partial<Record<HookEvent, HookMatcher[]>>
+    settingSources?: SettingSource[]
 }
 
 /**

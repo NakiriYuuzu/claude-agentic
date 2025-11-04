@@ -15,6 +15,11 @@ export class DatabaseService {
     constructor(dbPath: string = './data/settings.db') {
         this.db = new Database(dbPath, { create: true })
         logger.info({ event: 'db_connecting', path: dbPath }, 'Connecting to database')
+
+        // 啟用外鍵約束
+        this.db.run('PRAGMA foreign_keys = ON')
+        logger.debug({ event: 'db_foreign_keys_enabled' }, 'Foreign keys enabled')
+
         this.initialize()
     }
 
@@ -54,11 +59,26 @@ export class DatabaseService {
                 agents TEXT,
                 mcp_servers TEXT,
                 hooks TEXT,
+                setting_sources TEXT DEFAULT '["project"]',
                 created_at TEXT NOT NULL DEFAULT (datetime('now')),
                 updated_at TEXT NOT NULL DEFAULT (datetime('now')),
                 FOREIGN KEY (workspace_path) REFERENCES workspaces(workspace_path) ON DELETE CASCADE
             )
         `).run()
+
+        // 資料遷移：為現有表格新增 setting_sources 欄位（如果不存在）
+        try {
+            this.db.query(`
+                ALTER TABLE workspace_settings
+                ADD COLUMN setting_sources TEXT DEFAULT '["project"]'
+            `).run()
+            logger.debug({ event: 'db_migration_add_setting_sources' }, 'Added setting_sources column')
+        } catch (error: any) {
+            // 欄位已存在時會拋出錯誤，可以忽略
+            if (!error.message.includes('duplicate column name')) {
+                logger.warn({ event: 'db_migration_warning', error: error.message }, 'Migration warning')
+            }
+        }
 
         // 建立索引
         this.db.query(`
@@ -102,9 +122,9 @@ export class DatabaseService {
             this.db.query(`
                 INSERT INTO workspace_settings (
                     workspace_path, system_prompt, allowed_tools,
-                    disallowed_tools, agents, mcp_servers, hooks
+                    disallowed_tools, agents, mcp_servers, hooks, setting_sources
                 )
-                VALUES (?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             `).run(
                 settings.workspacePath,
                 settings.systemPrompt ?? null,
@@ -112,7 +132,8 @@ export class DatabaseService {
                 settings.disallowedTools ? JSON.stringify(settings.disallowedTools) : null,
                 settings.agents ? JSON.stringify(settings.agents) : null,
                 settings.mcpServers ? JSON.stringify(settings.mcpServers) : null,
-                settings.hooks ? JSON.stringify(settings.hooks) : null
+                settings.hooks ? JSON.stringify(settings.hooks) : null,
+                settings.settingSources ? JSON.stringify(settings.settingSources) : JSON.stringify(['project'])
             )
 
             // 3. 查詢完整資料
@@ -180,6 +201,10 @@ export class DatabaseService {
         if (updates.hooks !== undefined) {
             fields.push('hooks = ?')
             values.push(updates.hooks ? JSON.stringify(updates.hooks) : null)
+        }
+        if (updates.settingSources !== undefined) {
+            fields.push('setting_sources = ?')
+            values.push(updates.settingSources ? JSON.stringify(updates.settingSources) : JSON.stringify(['project']))
         }
 
         if (fields.length === 0) {
@@ -251,6 +276,7 @@ export class DatabaseService {
             agents: row.agents ? JSON.parse(row.agents) : undefined,
             mcpServers: row.mcp_servers ? JSON.parse(row.mcp_servers) : undefined,
             hooks: row.hooks ? JSON.parse(row.hooks) : undefined,
+            settingSources: row.setting_sources ? JSON.parse(row.setting_sources) : ['project'],
             createdAt: row.created_at,
             updatedAt: row.updated_at
         }

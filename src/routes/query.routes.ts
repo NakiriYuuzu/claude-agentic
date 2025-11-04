@@ -7,6 +7,8 @@ import { Elysia, t } from 'elysia'
 import { AgentService } from '../services/agent.service'
 import type { SettingsService } from '../services/settings.service'
 import type { SessionRecorder } from '../services/session-recorder'
+import { randomUUID } from 'crypto'
+import type { SDKUserMessage } from '../types/session.types'
 
 /**
  * 格式化為 SSE 事件
@@ -69,7 +71,20 @@ export const createQueryRoutes = (
                     ? sessionRecorder.recordQuery(agentService, body)
                     : agentService.executeQuery(body)
 
+                // 用於記錄使用者輸入訊息
+                let userMessageRecorded = false
+
+                // 心跳機制：防止長時間無資料時連線中斷
+                let lastHeartbeat = Date.now()
+                const HEARTBEAT_INTERVAL = 15000 // 15 seconds
+
                 for await (const message of queryGenerator) {
+                    // 檢查是否需要發送心跳
+                    if (Date.now() - lastHeartbeat > HEARTBEAT_INTERVAL) {
+                        yield formatSSE('heartbeat', { timestamp: new Date().toISOString() })
+                        lastHeartbeat = Date.now()
+                    }
+
                     // 根據訊息類型格式化不同的 SSE 事件
                     switch (message.type) {
                         case 'system':
@@ -79,6 +94,48 @@ export const createQueryRoutes = (
                                     cwd: (message as any).cwd,
                                     model: (message as any).model
                                 })
+                                lastHeartbeat = Date.now() // 重置心跳
+
+                                // 手動記錄使用者輸入訊息（SDK 不會自動發出）
+                                if (sessionRecorder && !userMessageRecorded && body.prompt) {
+                                    const userMessage: SDKUserMessage = {
+                                        type: 'user',
+                                        uuid: randomUUID(),
+                                        session_id: (message as any).session_id,
+                                        message: {
+                                            role: 'user',
+                                            content: [{
+                                                type: 'text',
+                                                text: body.prompt
+                                            }]
+                                        },
+                                        parent_tool_use_id: null
+                                    }
+
+                                    // 使用 queueService 記錄訊息（非阻塞）
+                                    userMessageRecorded = true
+                                    ;(sessionRecorder as any).handleMessage(userMessage, body.workspacePath)
+                                        .then(() => {
+                                            log.debug(
+                                                {
+                                                    event: 'user_message_recorded',
+                                                    session_id: (message as any).session_id,
+                                                    prompt_length: body.prompt.length
+                                                },
+                                                'User input message recorded'
+                                            )
+                                        })
+                                        .catch((recordError: any) => {
+                                            log.error(
+                                                {
+                                                    event: 'user_message_record_error',
+                                                    session_id: (message as any).session_id,
+                                                    error: recordError.message
+                                                },
+                                                'Failed to record user input message'
+                                            )
+                                        })
+                                }
                             }
                             break
 
@@ -87,6 +144,7 @@ export const createQueryRoutes = (
                                 content: (message as any).message?.content,
                                 uuid: (message as any).uuid
                             })
+                            lastHeartbeat = Date.now() // 重置心跳
                             break
 
                         case 'result':
@@ -97,11 +155,13 @@ export const createQueryRoutes = (
                                 duration_ms: (message as any).duration_ms,
                                 is_error: (message as any).is_error
                             })
+                            lastHeartbeat = Date.now() // 重置心跳
                             break
 
                         default:
                             // 其他訊息類型
                             yield formatSSE('message', message)
+                            lastHeartbeat = Date.now() // 重置心跳
                     }
                 }
 
@@ -120,6 +180,7 @@ export const createQueryRoutes = (
                 }
                 log.info(completeLog, 'Agent query completed')
                 fileLogger.info(completeLog, 'Agent query completed')
+                return // 明確結束 generator，確保 chunked transfer encoding 正確終止
 
             } catch (error: any) {
                 const duration = Date.now() - startTime
@@ -152,6 +213,7 @@ export const createQueryRoutes = (
                     duration_ms: duration
                 }
                 fileLogger.error(errorLog, 'Agent query failed')
+                return // 明確結束 generator，確保錯誤時 chunked transfer encoding 也正確終止
             }
         }, {
             body: t.Object({

@@ -33,6 +33,15 @@ const McpServerConfigSchema = t.Object({
 })
 
 /**
+ * Setting Source Schema
+ */
+const SettingSourceSchema = t.Union([
+    t.Literal('user'),
+    t.Literal('project'),
+    t.Literal('local')
+])
+
+/**
  * 建立工作空間設定的請求 Schema
  */
 export const CreateSettingsSchema = t.Object({
@@ -45,7 +54,8 @@ export const CreateSettingsSchema = t.Object({
     disallowedTools: t.Optional(t.Array(t.String())),
     agents: t.Optional(t.Record(t.String(), AgentDefinitionSchema)),
     mcpServers: t.Optional(t.Record(t.String(), McpServerConfigSchema)),
-    hooks: t.Optional(t.Record(t.String(), t.Any()))
+    hooks: t.Optional(t.Record(t.String(), t.Any())),
+    settingSources: t.Optional(t.Array(SettingSourceSchema))
 })
 
 /**
@@ -57,7 +67,8 @@ export const UpdateSettingsSchema = t.Object({
     disallowedTools: t.Optional(t.Array(t.String())),
     agents: t.Optional(t.Record(t.String(), AgentDefinitionSchema)),
     mcpServers: t.Optional(t.Record(t.String(), McpServerConfigSchema)),
-    hooks: t.Optional(t.Record(t.String(), t.Any()))
+    hooks: t.Optional(t.Record(t.String(), t.Any())),
+    settingSources: t.Optional(t.Array(SettingSourceSchema))
 })
 
 /**

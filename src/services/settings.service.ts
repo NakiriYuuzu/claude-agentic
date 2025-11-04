@@ -79,6 +79,14 @@ export class SettingsService {
             options.hooks = settings.hooks
         }
 
+        // Setting Sources
+        if (settings.settingSources) {
+            options.settingSources = settings.settingSources
+        } else {
+            // 預設值為 ['project']
+            options.settingSources = ['project']
+        }
+
         return options
     }
 

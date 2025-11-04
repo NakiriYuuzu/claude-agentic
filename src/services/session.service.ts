@@ -18,13 +18,79 @@ import { logger } from '../utils/logger'
  */
 export class SessionService {
     constructor(private db: Database) {
+        this.migrateIfNeeded()
         this.initializeTables()
     }
 
     /**
-     * 初始化資料庫表格
+     * 資料庫遷移：修復外鍵約束
      */
-    private initializeTables() {
+    private migrateIfNeeded() {
+        try {
+            // 檢查是否需要遷移（檢查外鍵是否正確）
+            const foreignKeys = this.db.query(`PRAGMA foreign_key_list(sessions)`).all() as any[]
+            const needMigration = foreignKeys.some(
+                fk => fk.table === 'workspace_settings' && fk.to === 'workspacePath'
+            )
+
+            if (needMigration) {
+                logger.info({ event: 'db_migration_start' }, 'Starting database migration to fix foreign key')
+
+                // 關閉外鍵約束
+                this.db.run('PRAGMA foreign_keys = OFF')
+
+                // 開始交易
+                this.db.run('BEGIN TRANSACTION')
+
+                try {
+                    // 1. 備份現有資料
+                    this.db.run(`CREATE TABLE sessions_backup AS SELECT * FROM sessions`)
+                    this.db.run(`CREATE TABLE session_messages_backup AS SELECT * FROM session_messages`)
+
+                    // 2. 刪除舊表格
+                    this.db.run(`DROP TABLE IF EXISTS session_messages`)
+                    this.db.run(`DROP TABLE IF EXISTS sessions`)
+
+                    // 3. 重建表格（使用正確的外鍵）
+                    this.createSessionsTables()
+
+                    // 4. 還原資料
+                    this.db.run(`
+                        INSERT INTO sessions SELECT * FROM sessions_backup
+                    `)
+                    this.db.run(`
+                        INSERT INTO session_messages SELECT * FROM session_messages_backup
+                    `)
+
+                    // 5. 刪除備份表格
+                    this.db.run(`DROP TABLE sessions_backup`)
+                    this.db.run(`DROP TABLE session_messages_backup`)
+
+                    // 提交交易
+                    this.db.run('COMMIT')
+
+                    logger.info({ event: 'db_migration_complete' }, 'Database migration completed successfully')
+                } catch (error) {
+                    // 回滾交易
+                    this.db.run('ROLLBACK')
+                    throw error
+                } finally {
+                    // 重新啟用外鍵約束
+                    this.db.run('PRAGMA foreign_keys = ON')
+                }
+            }
+        } catch (error: any) {
+            // 如果表格不存在，跳過遷移
+            if (!error.message.includes('no such table')) {
+                logger.error({ event: 'db_migration_error', error: error.message }, 'Migration failed')
+            }
+        }
+    }
+
+    /**
+     * 建立 sessions 和 session_messages 表格
+     */
+    private createSessionsTables() {
         // 建立 sessions 表
         this.db.run(`
             CREATE TABLE IF NOT EXISTS sessions (
@@ -57,7 +123,7 @@ export class SessionService {
                 -- 使用統計
                 message_count INTEGER DEFAULT 0,
 
-                FOREIGN KEY (workspace_path) REFERENCES workspace_settings(workspacePath) ON DELETE CASCADE
+                FOREIGN KEY (workspace_path) REFERENCES workspace_settings(workspace_path) ON DELETE CASCADE
             )
         `)
 
@@ -135,6 +201,13 @@ export class SessionService {
         `)
 
         logger.debug({ event: 'sessions_tables_initialized' }, 'Sessions tables initialized')
+    }
+
+    /**
+     * 初始化資料庫表格（包裝方法）
+     */
+    private initializeTables() {
+        this.createSessionsTables()
     }
 
     /**

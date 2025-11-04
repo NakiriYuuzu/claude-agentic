@@ -168,6 +168,23 @@ export interface SDKMessage {
 }
 
 /**
+ * SDK User Message 型別
+ */
+export interface SDKUserMessage {
+    type: 'user'
+    uuid: string
+    session_id: string
+    message: {
+        role: 'user'
+        content: Array<{
+            type: 'text'
+            text: string
+        }>
+    }
+    parent_tool_use_id: string | null
+}
+
+/**
  * 佇列項目
  */
 export interface QueueItem {

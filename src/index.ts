@@ -6,6 +6,7 @@
 import { Elysia } from 'elysia'
 import { swagger } from '@elysiajs/swagger'
 import { cors } from '@elysiajs/cors'
+import { staticPlugin } from '@elysiajs/static'
 import { logger as elysiaLogger, fileLogger as elysiaFileLogger } from '@bogeychan/elysia-logger'
 import { SettingsService } from './services/settings.service'
 import { createSettingsRoutes } from './routes/settings.routes'
@@ -92,6 +93,12 @@ const app = new Elysia()
 
     // CORS 支援
     .use(cors())
+
+    // 靜態檔案服務
+    .use(staticPlugin({
+        assets: 'public',
+        prefix: '/'
+    }))
 
     // Swagger UI
     .use(swagger({

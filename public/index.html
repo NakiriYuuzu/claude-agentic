@@ -1,0 +1,2230 @@
+<!DOCTYPE html>
+<html lang="zh-TW" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claude Agent - AI Assistant (ChatGPT Style)</title>
+
+    <!-- Tailwind CSS Browser CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+
+    <!-- Vue.js 3 CDN -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+    <!-- Marked.js for Markdown rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply bg-white text-gray-900 antialiased;
+            }
+        }
+
+        @layer components {
+            /* 側邊欄樣式 - ChatGPT 深色風格 */
+            .sidebar {
+                @apply w-80 text-gray-100 flex flex-col h-full;
+            }
+
+            .sidebar.light {
+                @apply bg-white text-gray-900 border-r border-gray-200;
+            }
+
+            .sidebar.dark {
+                @apply bg-[#202123];
+            }
+
+            .sidebar-item {
+                @apply px-3 py-3 rounded-lg cursor-pointer transition-colors flex items-start gap-3 text-sm mb-1;
+            }
+
+            .sidebar-item.light {
+                @apply hover:bg-gray-100 text-gray-700;
+            }
+
+            .sidebar-item.dark {
+                @apply hover:bg-[#343541] text-gray-100;
+            }
+
+            .sidebar-item-active.light {
+                @apply bg-gray-200;
+            }
+
+            .sidebar-item-active.dark {
+                @apply bg-[#343541];
+            }
+
+            /* 聊天訊息樣式 - ChatGPT 風格氣泡 */
+            .message-user {
+                @apply rounded-3xl px-5 py-3.5 shadow-sm border transition-colors duration-200;
+            }
+
+            .message-user.light {
+                @apply bg-[#F7F7F8] border-gray-200 text-gray-900;
+            }
+
+            .message-user.dark {
+                @apply bg-[#343541] border-[#40414f] text-gray-100;
+            }
+
+            .message-assistant {
+                @apply rounded-3xl px-5 py-3.5 shadow-sm border transition-colors duration-200;
+            }
+
+            .message-assistant.light {
+                @apply bg-white border-gray-200 text-gray-900;
+            }
+
+            .message-assistant.dark {
+                @apply bg-[#444654] border-[#40414f] text-gray-100;
+            }
+
+            .message-system {
+                @apply rounded-2xl px-3 py-2 text-sm border transition-colors duration-200;
+            }
+
+            .message-system.light {
+                @apply bg-[#F7F7F8] border-gray-200 text-gray-600;
+            }
+
+            .message-system.dark {
+                @apply bg-[#343541] border-[#40414f] text-gray-400;
+            }
+
+            /* 工具面板樣式 */
+            .tool-panel {
+                @apply w-full mt-3 rounded-xl border transition-colors duration-200;
+            }
+
+            .tool-panel.light {
+                @apply bg-gray-50 border-gray-200;
+            }
+
+            .tool-panel.dark {
+                @apply bg-[#343541] border-[#40414f];
+            }
+
+            .tool-header {
+                @apply w-full flex items-center justify-between px-4 py-2 cursor-pointer transition-colors duration-200;
+            }
+
+            .tool-header.light:hover {
+                @apply bg-gray-100;
+            }
+
+            .tool-header.dark:hover {
+                @apply bg-[#40414f];
+            }
+
+            .tool-content {
+                @apply w-full px-4 py-3 text-xs font-mono rounded-b-xl transition-colors duration-200 border-t;
+            }
+
+            .tool-content.light {
+                @apply bg-white border-gray-200 text-gray-800;
+            }
+
+            .tool-content.dark {
+                @apply bg-[#2a2b32] border-[#40414f] text-gray-300;
+            }
+
+            /* 輸入框樣式 - ChatGPT 白底柔和陰影 */
+            .input-box {
+                @apply w-full resize-none border-0 bg-transparent focus:outline-none focus:ring-0 transition-colors duration-200;
+            }
+
+            .input-box.light {
+                @apply placeholder-gray-400 text-gray-900;
+            }
+
+            .input-box.dark {
+                @apply placeholder-gray-500 text-gray-100;
+            }
+
+            /* Session 狀態欄樣式 - 改進版 */
+            .session-status-bar {
+                @apply mb-3 px-5 py-3 rounded-2xl border transition-all duration-200 shadow-sm;
+            }
+
+            .session-status-bar.light {
+                @apply bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200 text-gray-800;
+            }
+
+            .session-status-bar.dark {
+                @apply bg-gradient-to-r from-[#2a2b32] to-[#343541] border-[#565869] text-gray-200;
+            }
+
+            .input-container {
+                @apply relative flex items-center gap-3 rounded-3xl shadow-md px-5 py-3 border transition-all;
+            }
+
+            .input-container.light {
+                @apply bg-white border-gray-300 focus-within:border-[#10A37F] focus-within:ring-2 focus-within:ring-[#10A37F];
+            }
+
+            .input-container.dark {
+                @apply bg-[#40414f] border-[#565869] focus-within:border-[#10A37F] focus-within:ring-2 focus-within:ring-[#10A37F];
+            }
+
+            /* 設定面板樣式 */
+            .settings-panel {
+                @apply mb-3 rounded-2xl p-4 shadow-xl transition-all duration-200 border;
+            }
+
+            .settings-panel.light {
+                @apply bg-white border-gray-200;
+            }
+
+            .settings-panel.dark {
+                @apply bg-[#343541] border-[#40414f];
+            }
+
+            /* 按鈕樣式 - ChatGPT 綠色系 */
+            .btn-icon {
+                @apply p-2 rounded-lg transition-colors;
+            }
+
+            .btn-icon.light {
+                @apply hover:bg-gray-100 text-gray-600 hover:text-gray-900;
+            }
+
+            .btn-icon.dark {
+                @apply hover:bg-[#40414f] text-gray-400 hover:text-gray-100;
+            }
+
+            .btn-send {
+                @apply p-2.5 rounded-xl bg-[#10A37F] hover:bg-[#19C37D] text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-[#10A37F] shadow-sm;
+            }
+
+            .btn-primary {
+                @apply bg-[#10A37F] hover:bg-[#19C37D] text-white font-medium py-2 px-4 rounded-xl transition-colors disabled:opacity-50 shadow-sm;
+            }
+
+            .btn-secondary {
+                @apply font-medium py-2 px-4 rounded-xl transition-colors border;
+            }
+
+            .btn-secondary.light {
+                @apply bg-[#F7F7F8] hover:bg-gray-200 text-gray-800 border-gray-300;
+            }
+
+            .btn-secondary.dark {
+                @apply bg-[#40414f] hover:bg-[#565869] text-gray-100 border-[#565869];
+            }
+
+            /* Toast 通知 */
+            .toast {
+                @apply fixed bottom-4 right-4 px-4 py-3 rounded-2xl shadow-lg text-white font-medium transform transition-all duration-300 z-50;
+            }
+
+            .toast-success {
+                @apply bg-[#10A37F];
+            }
+
+            .toast-error {
+                @apply bg-red-600;
+            }
+
+            .toast-info {
+                @apply bg-gray-700;
+            }
+
+            /* 滾動條樣式 */
+            .custom-scrollbar::-webkit-scrollbar {
+                @apply w-2;
+            }
+
+            .custom-scrollbar::-webkit-scrollbar-track {
+                @apply bg-transparent;
+            }
+
+            .custom-scrollbar::-webkit-scrollbar-thumb {
+                @apply bg-gray-300 rounded-full hover:bg-gray-400;
+            }
+
+            /* Markdown 內容樣式 */
+            .markdown-content {
+                @apply text-sm max-w-none;
+            }
+
+            .markdown-content.light {
+                @apply text-gray-700;
+            }
+
+            .markdown-content.dark {
+                @apply text-gray-200;
+            }
+
+            .markdown-content h1,
+            .markdown-content h2,
+            .markdown-content h3,
+            .markdown-content h4,
+            .markdown-content h5,
+            .markdown-content h6 {
+                @apply font-semibold mt-4 mb-2;
+            }
+
+            .markdown-content.light h1,
+            .markdown-content.light h2,
+            .markdown-content.light h3,
+            .markdown-content.light h4,
+            .markdown-content.light h5,
+            .markdown-content.light h6 {
+                @apply text-gray-900;
+            }
+
+            .markdown-content.dark h1,
+            .markdown-content.dark h2,
+            .markdown-content.dark h3,
+            .markdown-content.dark h4,
+            .markdown-content.dark h5,
+            .markdown-content.dark h6 {
+                @apply text-gray-100;
+            }
+
+            .markdown-content h1 { @apply text-2xl; }
+            .markdown-content h2 { @apply text-xl; }
+            .markdown-content h3 { @apply text-lg; }
+            .markdown-content h4 { @apply text-base; }
+            .markdown-content h5 { @apply text-sm; }
+            .markdown-content h6 { @apply text-xs; }
+
+            .markdown-content p {
+                @apply my-2;
+            }
+
+            .markdown-content pre {
+                @apply p-4 rounded-lg overflow-x-auto my-3;
+            }
+
+            .markdown-content.light pre {
+                @apply bg-gray-900 text-gray-100;
+            }
+
+            .markdown-content.dark pre {
+                @apply bg-black text-gray-100;
+            }
+
+            .markdown-content code {
+                @apply px-1 py-0.5 rounded text-xs;
+            }
+
+            .markdown-content.light code {
+                @apply text-pink-600 bg-pink-50;
+            }
+
+            .markdown-content.dark code {
+                @apply text-pink-400 bg-pink-950;
+            }
+
+            .markdown-content pre code {
+                @apply bg-transparent text-inherit p-0;
+            }
+
+            .markdown-content a {
+                @apply underline transition-colors;
+            }
+
+            .markdown-content.light a {
+                @apply text-blue-600 hover:text-blue-800;
+            }
+
+            .markdown-content.dark a {
+                @apply text-blue-400 hover:text-blue-300;
+            }
+
+            .markdown-content strong {
+                @apply font-bold;
+            }
+
+            .markdown-content ul,
+            .markdown-content ol {
+                @apply my-2 ml-6;
+            }
+
+            .markdown-content ul {
+                @apply list-disc;
+            }
+
+            .markdown-content ol {
+                @apply list-decimal;
+            }
+
+            .markdown-content li {
+                @apply my-1;
+            }
+
+            .markdown-content blockquote {
+                @apply border-l-4 pl-4 my-3 italic;
+            }
+
+            .markdown-content.light blockquote {
+                @apply border-gray-300 text-gray-600;
+            }
+
+            .markdown-content.dark blockquote {
+                @apply border-gray-600 text-gray-400;
+            }
+
+            .markdown-content table {
+                @apply w-full my-3 border-collapse;
+            }
+
+            .markdown-content th,
+            .markdown-content td {
+                @apply border px-3 py-2 text-left;
+            }
+
+            .markdown-content.light th,
+            .markdown-content.light td {
+                @apply border-gray-300;
+            }
+
+            .markdown-content.dark th,
+            .markdown-content.dark td {
+                @apply border-gray-600;
+            }
+
+            .markdown-content.light th {
+                @apply bg-gray-100 font-semibold;
+            }
+
+            .markdown-content.dark th {
+                @apply bg-[#343541] font-semibold;
+            }
+
+            /* 動畫 */
+            @keyframes slideIn {
+                from {
+                    opacity: 0;
+                    transform: translateY(10px);
+                }
+                to {
+                    opacity: 1;
+                    transform: translateY(0);
+                }
+            }
+
+            .animate-slide-in {
+                animation: slideIn 0.3s ease-out;
+            }
+
+            /* 查詢結果徽章樣式 */
+            .result-badge {
+                @apply absolute -bottom-2 -right-2 w-7 h-7 bg-[#10A37F] rounded-full flex items-center justify-center shadow-lg cursor-pointer transition-all duration-200 hover:scale-110;
+            }
+
+            .result-badge.light {
+                @apply ring-2 ring-white;
+            }
+
+            .result-badge.dark {
+                @apply ring-2 ring-[#343541];
+            }
+
+            /* Tooltip 樣式 */
+            .result-tooltip {
+                @apply absolute bottom-full right-0 mb-2 px-3 py-2 rounded-lg shadow-xl text-xs whitespace-nowrap opacity-0 invisible transition-all duration-200 pointer-events-none z-10;
+            }
+
+            .result-tooltip.light {
+                @apply bg-gray-900 text-white;
+            }
+
+            .result-tooltip.dark {
+                @apply bg-gray-100 text-gray-900;
+            }
+
+            .result-badge:hover .result-tooltip {
+                @apply opacity-100 visible;
+            }
+
+            @keyframes checkmark {
+                0% {
+                    opacity: 0;
+                    transform: scale(0.5) rotate(-45deg);
+                }
+                50% {
+                    transform: scale(1.1) rotate(0deg);
+                }
+                100% {
+                    opacity: 1;
+                    transform: scale(1) rotate(0deg);
+                }
+            }
+
+            .animate-checkmark {
+                animation: checkmark 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            }
+        }
+    </style>
+</head>
+<body class="h-full overflow-hidden" :class="isDarkMode ? 'bg-[#343541]' : 'bg-white'">
+    <div id="app" class="h-full flex">
+        <!-- 左側邊欄 - ChatGPT 深色風格 -->
+        <div class="sidebar" :class="[{ 'hidden': !showSidebar, 'md:flex': !showSidebar }, isDarkMode ? 'dark' : 'light']">
+            <!-- 頂部：新對話按鈕和深淺色切換 -->
+            <div class="p-3 border-b" :class="isDarkMode ? 'border-[#343541]' : 'border-gray-200'">
+                <button @click="startNewChat" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg transition-colors text-sm font-medium mb-2"
+                    :class="isDarkMode ? 'bg-transparent hover:bg-[#343541] border border-gray-600 text-gray-100' : 'bg-white hover:bg-gray-100 border border-gray-300 text-gray-900'">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    新對話
+                </button>
+
+                <!-- Dark Mode Toggle -->
+                <button @click="toggleDarkMode" class="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg transition-colors text-sm font-medium"
+                    :class="isDarkMode ? 'bg-transparent hover:bg-[#343541] border border-gray-600 text-gray-100' : 'bg-white hover:bg-gray-100 border border-gray-300 text-gray-900'">
+                    <svg v-if="!isDarkMode" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/>
+                    </svg>
+                    <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                    {{ isDarkMode ? 'Light 模式' : 'Dark 模式' }}
+                </button>
+            </div>
+
+            <!-- 中間：聊天歷史 -->
+            <div class="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-1">
+                <div class="text-xs font-semibold uppercase tracking-wider mb-2" :class="isDarkMode ? 'text-gray-400' : 'text-gray-500'">
+                    最近對話
+                </div>
+                <div
+                    v-for="session in recentSessions"
+                    :key="session.session_id"
+                    class="sidebar-item group relative"
+                    :class="[
+                        isDarkMode ? 'dark' : 'light',
+                        currentSessionId === session.session_id ? (isDarkMode ? 'sidebar-item-active dark' : 'sidebar-item-active light') : ''
+                    ]"
+                >
+                    <!-- 對話圖示 -->
+                    <svg class="w-5 h-5 flex-shrink-0 mt-0.5" :class="isDarkMode ? 'text-gray-400' : 'text-gray-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>
+                    </svg>
+
+                    <!-- 對話內容（點擊區域） -->
+                    <div @click="loadSession(session)" class="flex-1 min-w-0 cursor-pointer">
+                        <div class="truncate font-medium mb-1.5" :class="isDarkMode ? 'text-gray-200' : 'text-gray-900'">
+                            {{ getSessionTitle(session) }}
+                        </div>
+                        <div class="flex items-center gap-2 text-xs flex-wrap" :class="isDarkMode ? 'text-gray-500' : 'text-gray-600'">
+                            <span class="flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                {{ formatDate(session.created_at) }}
+                            </span>
+                            <span class="px-2 py-0.5 rounded-md text-xs font-medium" :class="isDarkMode ? 'bg-[#2A2B32] text-gray-400' : 'bg-gray-100 text-gray-600'">
+                                {{ getWorkspaceName(session.workspace_path) }}
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- 刪除按鈕 -->
+                    <button
+                        @click.stop="deleteSession(session)"
+                        class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 p-2 rounded-md transition-all duration-200"
+                        :class="isDarkMode ? 'hover:bg-red-900/30 text-red-400 hover:text-red-300' : 'hover:bg-red-50 text-red-500 hover:text-red-600'"
+                        title="刪除對話"
+                    >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <div v-if="recentSessions.length === 0" class="text-sm text-center py-8" :class="isDarkMode ? 'text-gray-500' : 'text-gray-600'">
+                    尚無對話記錄
+                </div>
+            </div>
+
+            <!-- 底部：工作空間和設定 -->
+            <div class="p-3 border-t space-y-2" :class="isDarkMode ? 'border-[#343541]' : 'border-gray-200'">
+                <!-- 工作空間選擇 -->
+                <div class="text-xs font-semibold uppercase tracking-wider mb-2" :class="isDarkMode ? 'text-gray-400' : 'text-gray-500'">
+                    工作空間
+                </div>
+                <select
+                    v-model="currentWorkspace"
+                    class="w-full rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#10A37F]"
+                    :class="isDarkMode ? 'bg-[#343541] text-gray-100 border border-gray-600' : 'bg-white text-gray-900 border border-gray-300'"
+                    @change="onWorkspaceChange"
+                >
+                    <option value="">選擇工作空間...</option>
+                    <option v-for="ws in workspaces" :key="ws.workspacePath" :value="ws.workspacePath">
+                        {{ ws.workspacePath.split('/').pop() || ws.workspacePath }}
+                    </option>
+                </select>
+
+                <!-- 管理工作空間按鈕 -->
+                <button @click="showWorkspacesModal = !showWorkspacesModal" class="sidebar-item w-full" :class="isDarkMode ? 'dark' : 'light'">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                    </svg>
+                    <span>管理工作空間</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 主要內容區 - ChatGPT 白底風格 -->
+        <div class="flex-1 flex flex-col h-full transition-colors duration-200" :class="isDarkMode ? 'bg-[#343541]' : 'bg-white'">
+            <!-- 頂部工具列 -->
+            <div class="px-4 py-3 flex items-center justify-between border-b transition-colors duration-200" :class="isDarkMode ? 'bg-[#343541] border-[#40414f]' : 'bg-white border-gray-200'">
+                <div class="flex items-center gap-3">
+                    <button @click="showSidebar = !showSidebar" class="md:hidden btn-icon" :class="isDarkMode ? 'dark' : 'light'">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        </svg>
+                    </button>
+                    <h1 class="text-lg font-semibold transition-colors duration-200" :class="isDarkMode ? 'text-gray-100' : 'text-gray-900'">Claude Agent</h1>
+                    <span v-if="currentWorkspace" class="text-sm transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-500'">
+                        • {{ currentWorkspace.split('/').pop() || currentWorkspace }}
+                    </span>
+                    <!-- Session 總成本顯示 -->
+                    <span v-if="currentSessionId && sessionTotalCost > 0" class="text-sm font-medium px-3 py-1 rounded-full transition-colors duration-200" :class="isDarkMode ? 'bg-[#2a2b32] text-gray-300' : 'bg-gray-100 text-gray-700'">
+                        💰 ${{ sessionTotalCost.toFixed(4) }} • {{ sessionMessageCount }} 訊息
+                    </span>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <!-- API Docs 按鈕 -->
+                    <button @click="openApiDocs" class="btn-icon" :class="isDarkMode ? 'dark' : 'light'" title="API 文件">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                    </button>
+
+                    <!-- 統計按鈕 -->
+                    <button @click="showStatsModal = !showStatsModal" class="btn-icon" :class="isDarkMode ? 'dark' : 'light'" title="統計資訊">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 聊天訊息區域 - ChatGPT 置中聊天容器 -->
+            <div ref="messagesContainer" class="flex-1 overflow-y-auto custom-scrollbar transition-colors duration-200" :class="isDarkMode ? 'bg-[#343541]' : 'bg-white'">
+                <div class="max-w-3xl mx-auto px-4 py-6 space-y-6">
+                    <!-- 歡迎訊息（當沒有訊息時） -->
+                    <div v-if="messages.length === 0" class="text-center py-12">
+                        <div class="inline-flex items-center justify-center w-16 h-16 bg-[#10A37F] rounded-3xl mb-4 shadow-md">
+                            <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                            </svg>
+                        </div>
+                        <h2 class="text-2xl font-bold mb-2 transition-colors duration-200" :class="isDarkMode ? 'text-gray-100' : 'text-gray-900'">開始新對話</h2>
+                        <p class="mb-8 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-500'">選擇工作空間並輸入您的問題</p>
+
+                        <!-- 快速提示 -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 max-w-2xl mx-auto">
+                            <button
+                                v-for="(example, idx) in examplePrompts"
+                                :key="idx"
+                                @click="useExamplePrompt(example)"
+                                class="text-left p-4 border rounded-2xl hover:border-[#10A37F] hover:shadow-md transition-all"
+                                :class="isDarkMode ? 'bg-[#444654] border-[#40414f]' : 'bg-[#F7F7F8] border-gray-200'"
+                            >
+                                <div class="font-medium mb-1 transition-colors duration-200" :class="isDarkMode ? 'text-gray-100' : 'text-gray-900'">{{ example.title }}</div>
+                                <div class="text-sm transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-500'">{{ example.prompt }}</div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 訊息列表 -->
+                    <div
+                        v-for="(msg, index) in messages"
+                        :key="index"
+                        class="animate-slide-in"
+                    >
+                        <!-- System Message -->
+                        <div v-if="msg.type === 'system'" class="flex justify-center">
+                            <div class="message-system inline-flex items-center gap-2" :class="isDarkMode ? 'dark' : 'light'">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                                </svg>
+                                {{ msg.text }}
+                            </div>
+                        </div>
+
+                        <!-- User Message -->
+                        <div v-if="msg.type === 'user'" class="flex justify-end">
+                            <div class="message-user max-w-[80%]" :class="isDarkMode ? 'dark' : 'light'">
+                                <div class="font-medium mb-1">您</div>
+                                <div>{{ msg.text }}</div>
+                            </div>
+                        </div>
+
+                        <!-- Assistant Message -->
+                        <div v-if="msg.type === 'assistant'" class="flex justify-start">
+                            <div class="message-assistant max-w-[85%] relative" :class="isDarkMode ? 'dark' : 'light'">
+                                <div class="flex items-center gap-2 mb-2">
+                                    <div class="w-6 h-6 bg-[#10A37F] rounded-md flex items-center justify-center">
+                                        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                                        </svg>
+                                    </div>
+                                    <span class="font-medium">Assistant</span>
+                                </div>
+                                <div v-if="msg.content" class="markdown-content leading-relaxed" :class="isDarkMode ? 'dark' : 'light'" v-html="renderMarkdown(msg.content)"></div>
+                                <div v-if="msg.isStreaming" class="flex items-center gap-2 text-sm transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-500'">
+                                    <div class="flex gap-1">
+                                        <div class="w-2 h-2 bg-[#10A37F] rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+                                        <div class="w-2 h-2 bg-[#10A37F] rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+                                        <div class="w-2 h-2 bg-[#10A37F] rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+                                    </div>
+                                    <span>思考中...</span>
+                                </div>
+
+                                <!-- 工具使用面板 -->
+                                <div v-if="msg.tools && msg.tools.length > 0" class="mt-3 space-y-2">
+                                    <div class="text-xs font-semibold uppercase tracking-wider mb-2 flex items-center gap-1 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-500'">
+                                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        </svg>
+                                        使用的工具
+                                    </div>
+                                    <div v-for="tool in msg.tools" :key="tool.id" class="tool-panel" :class="isDarkMode ? 'dark' : 'light'">
+                                        <div class="tool-header" :class="isDarkMode ? 'dark' : 'light'" @click="toggleToolExpand(tool)">
+                                            <div class="flex items-center gap-2 flex-1">
+                                                <div :class="['p-1.5 rounded-md', getToolIcon(tool.name).color]">
+                                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" :d="getToolIcon(tool.name).icon"/>
+                                                    </svg>
+                                                </div>
+                                                <span class="text-sm font-medium">{{ tool.name }}</span>
+                                                <span v-if="tool.is_error" class="text-xs text-red-600 font-medium">錯誤</span>
+                                            </div>
+                                            <svg class="w-4 h-4 transition-transform" :class="{ 'rotate-180': tool.expanded }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                            </svg>
+                                        </div>
+                                        <!-- 工具詳情（可展開） -->
+                                        <div v-if="tool.expanded" class="tool-content" :class="isDarkMode ? 'dark' : 'light'">
+                                            <!-- 輸入參數 -->
+                                            <div v-if="tool.input" class="mb-3">
+                                                <div class="text-xs font-semibold uppercase tracking-wider mb-1 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-600'">輸入參數</div>
+                                                <pre class="overflow-x-auto">{{ JSON.stringify(tool.input, null, 2) }}</pre>
+                                            </div>
+                                            <!-- 執行結果 -->
+                                            <div v-if="tool.result">
+                                                <div class="text-xs font-semibold uppercase tracking-wider mb-1 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-600'">執行結果</div>
+                                                <pre class="overflow-x-auto" :class="{ 'text-red-600': tool.is_error }">{{ typeof tool.result === 'string' ? tool.result : JSON.stringify(tool.result, null, 2) }}</pre>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- 查詢完成徽章（所有有結果的訊息都顯示） -->
+                                <div
+                                    v-if="msg.result"
+                                    class="result-badge animate-checkmark"
+                                    :class="isDarkMode ? 'dark' : 'light'"
+                                >
+                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                                    </svg>
+
+                                    <!-- Tooltip -->
+                                    <div class="result-tooltip" :class="isDarkMode ? 'dark' : 'light'">
+                                        <div class="font-semibold mb-1">查詢完成</div>
+                                        <div class="space-y-0.5">
+                                            <div>💰 成本: ${{ msg.result.total_cost_usd?.toFixed(4) || '0.0000' }}</div>
+                                            <div v-if="msg.result.usage">
+                                                📊 輸入: {{ msg.result.usage.input_tokens || 0 }} tokens
+                                            </div>
+                                            <div v-if="msg.result.usage">
+                                                📤 輸出: {{ msg.result.usage.output_tokens || 0 }} tokens
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- 載入中指示器 -->
+                    <div v-if="isQuerying && !hasStreamingMessage" class="flex justify-start animate-slide-in">
+                        <div class="message-assistant max-w-[85%]">
+                            <div class="flex items-center gap-2">
+                                <div class="w-6 h-6 bg-[#10A37F] rounded-md flex items-center justify-center">
+                                    <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/>
+                                    </svg>
+                                </div>
+                                <div class="flex gap-1">
+                                    <div class="w-2 h-2 bg-[#10A37F] rounded-full animate-bounce" style="animation-delay: 0ms"></div>
+                                    <div class="w-2 h-2 bg-[#10A37F] rounded-full animate-bounce" style="animation-delay: 150ms"></div>
+                                    <div class="w-2 h-2 bg-[#10A37F] rounded-full animate-bounce" style="animation-delay: 300ms"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底部輸入區域 - ChatGPT 風格輸入框 -->
+            <div class="pt-4 pb-6 px-4 transition-colors duration-200" :class="isDarkMode ? 'bg-[#343541]' : 'bg-white'">
+                <div class="max-w-3xl mx-auto">
+                    <!-- 設定面板（可展開/收起） -->
+                    <div v-if="showSettingsPanel" class="settings-panel" :class="isDarkMode ? 'dark' : 'light'">
+                        <div class="grid grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-xs font-medium mb-1 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-700'">模型</label>
+                                <select v-model="settings.model" class="w-full px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-[#10A37F] focus:border-transparent transition-colors duration-200" :class="isDarkMode ? 'bg-[#40414f] text-gray-100 border-[#565869]' : 'bg-white text-gray-900 border-gray-300'">
+                                    <option value="">預設</option>
+                                    <option value="sonnet">Claude Sonnet</option>
+                                    <option value="haiku">Claude Haiku</option>
+                                    <option value="opus">Claude Opus</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium mb-1 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-700'">權限模式</label>
+                                <select v-model="settings.permissionMode" class="w-full px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-[#10A37F] focus:border-transparent transition-colors duration-200" :class="isDarkMode ? 'bg-[#40414f] text-gray-100 border-[#565869]' : 'bg-white text-gray-900 border-gray-300'">
+                                    <option value="default">預設</option>
+                                    <option value="acceptEdits">自動接受編輯</option>
+                                    <option value="bypassPermissions">繞過權限</option>
+                                    <option value="plan">規劃模式</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-medium mb-1 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-700'">最大回合數</label>
+                                <input v-model.number="settings.maxTurns" type="number" min="1" max="50" class="w-full px-2 py-1.5 text-sm border rounded-lg focus:ring-2 focus:ring-[#10A37F] focus:border-transparent transition-colors duration-200" :class="isDarkMode ? 'bg-[#40414f] text-gray-100 border-[#565869]' : 'bg-white text-gray-900 border-gray-300'">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Session 狀態欄 -->
+                    <div v-if="sessionStatus || sessionResult" class="session-status-bar" :class="isDarkMode ? 'dark' : 'light'">
+                        <!-- 初始化狀態 -->
+                        <div v-if="sessionStatus === 'initializing'" class="flex items-center gap-2 text-sm">
+                            <div class="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+                            <span>正在初始化...</span>
+                        </div>
+
+                        <!-- Session 就緒 -->
+                        <div v-else-if="sessionStatus === 'ready'" class="flex items-center gap-2 text-sm">
+                            <svg class="w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                            </svg>
+                            <span>Session 已建立</span>
+                        </div>
+
+                        <!-- 查詢完成 -->
+                        <div v-else-if="sessionResult" class="flex flex-wrap items-center gap-3 text-sm">
+                            <div class="flex items-center gap-1.5">
+                                <svg class="w-4 h-4" :class="sessionResult.success ? 'text-green-500' : 'text-red-500'" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path v-if="sessionResult.success" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                                    <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                </svg>
+                                <span>{{ sessionResult.success ? '✅ 成功' : '❌ 失敗' }}</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span>💰</span>
+                                <span>成本: ${{ sessionResult.cost }}</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span>🔄</span>
+                                <span>回合: {{ sessionResult.turns }}</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <span>⏱️</span>
+                                <span>時間: {{ sessionResult.duration }}ms</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="input-container" :class="isDarkMode ? 'dark' : 'light'">
+                        <!-- 設定按鈕（輸入框左側） -->
+                        <button @click="showSettingsPanel = !showSettingsPanel" class="btn-icon" :class="isDarkMode ? 'dark' : 'light'" title="設定">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                            </svg>
+                        </button>
+
+                        <textarea
+                            ref="messageInput"
+                            v-model="inputMessage"
+                            @keydown.enter.exact.prevent="sendMessage"
+                            @keydown.shift.enter="() => {}"
+                            placeholder="輸入訊息... (Enter 發送, Shift+Enter 換行)"
+                            rows="1"
+                            class="input-box flex-1"
+                            :class="isDarkMode ? 'dark' : 'light'"
+                            style="max-height: 200px; min-height: 24px;"
+                            @input="autoResizeTextarea"
+                            :disabled="!currentWorkspace || isQuerying"
+                        ></textarea>
+
+                        <button
+                            @click="sendMessage"
+                            class="btn-send"
+                            :disabled="!inputMessage.trim() || !currentWorkspace || isQuerying"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <div class="text-xs text-center mt-2 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-500'">
+                        <span v-if="!currentWorkspace">請先選擇工作空間</span>
+                        <span v-else>按 Enter 發送訊息，Shift+Enter 換行</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 工作空間管理 Modal -->
+        <div v-if="showWorkspacesModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="showWorkspacesModal = false">
+            <div class="rounded-3xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col transition-colors duration-200" :class="isDarkMode ? 'bg-[#343541]' : 'bg-white'">
+                <div class="p-6 border-b transition-colors duration-200" :class="isDarkMode ? 'border-[#40414f]' : 'border-gray-200'">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-2xl font-bold transition-colors duration-200" :class="isDarkMode ? 'text-gray-100' : 'text-gray-900'">工作空間管理</h2>
+                        <button @click="showWorkspacesModal = false" class="btn-icon" :class="isDarkMode ? 'dark' : 'light'">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-6 space-y-4">
+                    <button @click="showCreateWorkspaceForm = !showCreateWorkspaceForm" class="btn-primary w-full">
+                        + 新增工作空間
+                    </button>
+
+                    <!-- 新增工作空間表單 -->
+                    <div v-if="showCreateWorkspaceForm" class="rounded-2xl p-4 space-y-3 transition-colors duration-200" :class="isDarkMode ? 'bg-[#40414f]' : 'bg-[#F7F7F8]'">
+                        <!-- 工作空間路徑輸入 -->
+                        <div>
+                            <label class="block text-sm font-medium mb-2 transition-colors duration-200" :class="isDarkMode ? 'text-gray-300' : 'text-gray-700'">
+                                工作空間路徑
+                            </label>
+                            <div class="flex gap-2">
+                                <input
+                                    v-model="newWorkspace.workspacePath"
+                                    type="text"
+                                    placeholder="例如: /Users/username/projects/my-project"
+                                    class="flex-1 px-3 py-2 border rounded-xl focus:ring-2 focus:ring-[#10A37F] focus:border-transparent transition-colors duration-200"
+                                    :class="isDarkMode ? 'bg-[#343541] text-gray-100 border-[#565869] placeholder-gray-500' : 'bg-white text-gray-900 border-gray-300 placeholder-gray-400'"
+                                >
+                                <button
+                                    @click="openFolderDialog"
+                                    :disabled="isSelectingFolder"
+                                    class="px-4 py-2 rounded-xl font-medium transition-colors duration-200 flex items-center gap-2 whitespace-nowrap"
+                                    :class="isDarkMode ? 'bg-[#565869] hover:bg-[#676878] text-gray-100 disabled:opacity-50' : 'bg-gray-200 hover:bg-gray-300 text-gray-900 disabled:opacity-50'"
+                                    title="開啟資料夾選擇器"
+                                >
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>
+                                    </svg>
+                                    <span v-if="!isSelectingFolder">瀏覽</span>
+                                    <span v-else>載入中...</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <textarea v-model="newWorkspace.systemPrompt" placeholder="System Prompt (選填)" rows="3" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-[#10A37F] focus:border-transparent transition-colors duration-200" :class="isDarkMode ? 'bg-[#343541] text-gray-100 border-[#565869]' : 'bg-white text-gray-900 border-gray-300'"></textarea>
+
+                        <!-- Setting Sources 選項 -->
+                        <div>
+                            <label class="block text-sm font-medium mb-2 transition-colors duration-200" :class="isDarkMode ? 'text-gray-300' : 'text-gray-700'">
+                                Setting Sources（設定來源）
+                            </label>
+                            <div class="space-y-2">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" value="user" v-model="newWorkspace.settingSources" class="rounded">
+                                    <span class="text-sm" :class="isDarkMode ? 'text-gray-300' : 'text-gray-700'">User（使用者層級設定）</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" value="project" v-model="newWorkspace.settingSources" class="rounded" checked>
+                                    <span class="text-sm" :class="isDarkMode ? 'text-gray-300' : 'text-gray-700'">Project（專案層級設定）</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" value="local" v-model="newWorkspace.settingSources" class="rounded">
+                                    <span class="text-sm" :class="isDarkMode ? 'text-gray-300' : 'text-gray-700'">Local（本地層級設定）</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="flex gap-2">
+                            <button @click="createWorkspace" class="btn-primary flex-1">建立</button>
+                            <button @click="showCreateWorkspaceForm = false" class="btn-secondary" :class="isDarkMode ? 'dark' : 'light'">取消</button>
+                        </div>
+                    </div>
+
+                    <!-- 工作空間列表 -->
+                    <div class="space-y-2">
+                        <div v-for="ws in workspaces" :key="ws.workspacePath" class="border rounded-2xl p-4 hover:shadow-md transition-all" :class="isDarkMode ? 'bg-[#40414f] border-[#565869]' : 'bg-white border-gray-200'">
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="flex-1">
+                                    <div class="font-medium transition-colors duration-200" :class="isDarkMode ? 'text-gray-100' : 'text-gray-900'">{{ ws.workspacePath }}</div>
+                                    <div class="text-sm mt-1 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-500'">建立時間: {{ formatDate(ws.createdAt) }}</div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button @click="viewWorkspaceDetails(ws.workspacePath)" class="p-2 rounded-lg hover:bg-opacity-80 transition-colors" :class="isDarkMode ? 'text-blue-400 hover:bg-[#565869]' : 'text-blue-600 hover:bg-blue-50'" title="檢視詳細">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                                        </svg>
+                                    </button>
+                                    <button @click="editWorkspaceStart(ws.workspacePath)" class="p-2 rounded-lg hover:bg-opacity-80 transition-colors" :class="isDarkMode ? 'text-green-400 hover:bg-[#565869]' : 'text-green-600 hover:bg-green-50'" title="編輯">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                                        </svg>
+                                    </button>
+                                    <button @click="deleteWorkspace(ws.workspacePath)" class="p-2 rounded-lg hover:bg-opacity-80 transition-colors" :class="isDarkMode ? 'text-red-400 hover:bg-[#565869]' : 'text-red-600 hover:bg-red-50'" title="刪除">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                                        </svg>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 編輯工作空間 Modal -->
+        <div v-if="showEditWorkspaceForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="showEditWorkspaceForm = false">
+            <div class="rounded-3xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col transition-colors duration-200" :class="isDarkMode ? 'bg-[#343541]' : 'bg-white'">
+                <div class="p-6 border-b transition-colors duration-200" :class="isDarkMode ? 'border-[#40414f]' : 'border-gray-200'">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-2xl font-bold transition-colors duration-200" :class="isDarkMode ? 'text-gray-100' : 'text-gray-900'">編輯工作空間</h2>
+                        <button @click="showEditWorkspaceForm = false" class="btn-icon" :class="isDarkMode ? 'dark' : 'light'">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-6 space-y-4">
+                    <!-- 工作空間路徑（唯讀） -->
+                    <div>
+                        <label class="block text-sm font-medium mb-2 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-700'">工作空間路徑</label>
+                        <input
+                            v-model="editWorkspace.workspacePath"
+                            type="text"
+                            readonly
+                            class="w-full px-3 py-2 border rounded-xl transition-colors duration-200 opacity-60 cursor-not-allowed"
+                            :class="isDarkMode ? 'bg-[#40414f] text-gray-100 border-[#565869]' : 'bg-gray-100 text-gray-900 border-gray-300'"
+                        >
+                    </div>
+
+                    <!-- System Prompt -->
+                    <div>
+                        <label class="block text-sm font-medium mb-2 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-700'">System Prompt (選填)</label>
+                        <textarea
+                            v-model="editWorkspace.systemPrompt"
+                            rows="4"
+                            placeholder="輸入 system prompt..."
+                            class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-[#10A37F] focus:border-transparent transition-colors duration-200"
+                            :class="isDarkMode ? 'bg-[#40414f] text-gray-100 border-[#565869]' : 'bg-white text-gray-900 border-gray-300'"
+                        ></textarea>
+                    </div>
+
+                    <!-- Allowed Tools -->
+                    <div>
+                        <label class="block text-sm font-medium mb-2 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-700'">Allowed Tools (選填)</label>
+                        <textarea
+                            v-model="editWorkspace.allowedToolsText"
+                            rows="2"
+                            placeholder="以逗號分隔，例如: Read, Write, Bash"
+                            class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-[#10A37F] focus:border-transparent transition-colors duration-200"
+                            :class="isDarkMode ? 'bg-[#40414f] text-gray-100 border-[#565869]' : 'bg-white text-gray-900 border-gray-300'"
+                        ></textarea>
+                        <p class="text-xs mt-1 transition-colors duration-200" :class="isDarkMode ? 'text-gray-500' : 'text-gray-600'">
+                            留空表示允許所有工具
+                        </p>
+                    </div>
+
+                    <!-- Disallowed Tools -->
+                    <div>
+                        <label class="block text-sm font-medium mb-2 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-700'">Disallowed Tools (選填)</label>
+                        <textarea
+                            v-model="editWorkspace.disallowedToolsText"
+                            rows="2"
+                            placeholder="以逗號分隔，例如: Bash, Write"
+                            class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-[#10A37F] focus:border-transparent transition-colors duration-200"
+                            :class="isDarkMode ? 'bg-[#40414f] text-gray-100 border-[#565869]' : 'bg-white text-gray-900 border-gray-300'"
+                        ></textarea>
+                        <p class="text-xs mt-1 transition-colors duration-200" :class="isDarkMode ? 'text-gray-500' : 'text-gray-600'">
+                            留空表示無限制
+                        </p>
+                    </div>
+
+                    <!-- Setting Sources 選項 -->
+                    <div>
+                        <label class="block text-sm font-medium mb-2 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-700'">
+                            Setting Sources（設定來源）
+                        </label>
+                        <div class="space-y-2">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" value="user" v-model="editWorkspace.settingSources" class="rounded">
+                                <span class="text-sm" :class="isDarkMode ? 'text-gray-300' : 'text-gray-700'">User（使用者層級設定）</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" value="project" v-model="editWorkspace.settingSources" class="rounded">
+                                <span class="text-sm" :class="isDarkMode ? 'text-gray-300' : 'text-gray-700'">Project（專案層級設定）</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" value="local" v-model="editWorkspace.settingSources" class="rounded">
+                                <span class="text-sm" :class="isDarkMode ? 'text-gray-300' : 'text-gray-700'">Local（本地層級設定）</span>
+                            </label>
+                        </div>
+                        <p class="text-xs mt-1 transition-colors duration-200" :class="isDarkMode ? 'text-gray-500' : 'text-gray-600'">
+                            預設為 Project
+                        </p>
+                    </div>
+
+                    <!-- 按鈕 -->
+                    <div class="flex gap-2 pt-4">
+                        <button @click="updateWorkspace" class="btn-primary flex-1">儲存變更</button>
+                        <button @click="showEditWorkspaceForm = false" class="btn-secondary" :class="isDarkMode ? 'dark' : 'light'">取消</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 工作空間詳細資訊 Modal -->
+        <div v-if="showWorkspaceDetailsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="showWorkspaceDetailsModal = false">
+            <div class="rounded-3xl shadow-2xl max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col transition-colors duration-200" :class="isDarkMode ? 'bg-[#343541]' : 'bg-white'">
+                <div class="p-6 border-b transition-colors duration-200" :class="isDarkMode ? 'border-[#40414f]' : 'border-gray-200'">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-2xl font-bold transition-colors duration-200" :class="isDarkMode ? 'text-gray-100' : 'text-gray-900'">工作空間詳細資訊</h2>
+                        <button @click="showWorkspaceDetailsModal = false" class="btn-icon" :class="isDarkMode ? 'dark' : 'light'">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div v-if="selectedWorkspaceDetails" class="flex-1 overflow-y-auto p-6 space-y-4">
+                    <!-- 工作空間路徑 -->
+                    <div class="rounded-2xl p-4 transition-colors duration-200" :class="isDarkMode ? 'bg-[#40414f]' : 'bg-[#F7F7F8]'">
+                        <div class="text-sm font-medium mb-2 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-600'">工作空間路徑</div>
+                        <div class="font-mono transition-colors duration-200" :class="isDarkMode ? 'text-gray-100' : 'text-gray-900'">{{ selectedWorkspaceDetails.workspacePath }}</div>
+                    </div>
+
+                    <!-- System Prompt -->
+                    <div v-if="selectedWorkspaceDetails.systemPrompt" class="rounded-2xl p-4 transition-colors duration-200" :class="isDarkMode ? 'bg-[#40414f]' : 'bg-[#F7F7F8]'">
+                        <div class="text-sm font-medium mb-2 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-600'">System Prompt</div>
+                        <pre class="whitespace-pre-wrap font-mono text-sm transition-colors duration-200" :class="isDarkMode ? 'text-gray-100' : 'text-gray-900'">{{ selectedWorkspaceDetails.systemPrompt }}</pre>
+                    </div>
+
+                    <!-- Allowed Tools -->
+                    <div v-if="selectedWorkspaceDetails.allowedTools && selectedWorkspaceDetails.allowedTools.length > 0" class="rounded-2xl p-4 transition-colors duration-200" :class="isDarkMode ? 'bg-[#40414f]' : 'bg-[#F7F7F8]'">
+                        <div class="text-sm font-medium mb-2 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-600'">Allowed Tools</div>
+                        <div class="flex flex-wrap gap-2">
+                            <span v-for="tool in selectedWorkspaceDetails.allowedTools" :key="tool" class="px-2 py-1 rounded-lg text-xs font-medium transition-colors duration-200" :class="isDarkMode ? 'bg-green-900 text-green-200' : 'bg-green-100 text-green-800'">{{ tool }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Disallowed Tools -->
+                    <div v-if="selectedWorkspaceDetails.disallowedTools && selectedWorkspaceDetails.disallowedTools.length > 0" class="rounded-2xl p-4 transition-colors duration-200" :class="isDarkMode ? 'bg-[#40414f]' : 'bg-[#F7F7F8]'">
+                        <div class="text-sm font-medium mb-2 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-600'">Disallowed Tools</div>
+                        <div class="flex flex-wrap gap-2">
+                            <span v-for="tool in selectedWorkspaceDetails.disallowedTools" :key="tool" class="px-2 py-1 rounded-lg text-xs font-medium transition-colors duration-200" :class="isDarkMode ? 'bg-red-900 text-red-200' : 'bg-red-100 text-red-800'">{{ tool }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Setting Sources -->
+                    <div v-if="selectedWorkspaceDetails.settingSources && selectedWorkspaceDetails.settingSources.length > 0" class="rounded-2xl p-4 transition-colors duration-200" :class="isDarkMode ? 'bg-[#40414f]' : 'bg-[#F7F7F8]'">
+                        <div class="text-sm font-medium mb-2 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-600'">Setting Sources（設定來源）</div>
+                        <div class="flex flex-wrap gap-2">
+                            <span v-for="source in selectedWorkspaceDetails.settingSources" :key="source" class="px-2 py-1 rounded-lg text-xs font-medium transition-colors duration-200" :class="isDarkMode ? 'bg-blue-900 text-blue-200' : 'bg-blue-100 text-blue-800'">{{ source }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Agents -->
+                    <div v-if="selectedWorkspaceDetails.agents && Object.keys(selectedWorkspaceDetails.agents).length > 0" class="rounded-2xl p-4 transition-colors duration-200" :class="isDarkMode ? 'bg-[#40414f]' : 'bg-[#F7F7F8]'">
+                        <div class="text-sm font-medium mb-2 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-600'">Agents</div>
+                        <pre class="whitespace-pre-wrap font-mono text-xs overflow-x-auto transition-colors duration-200" :class="isDarkMode ? 'text-gray-100' : 'text-gray-900'">{{ JSON.stringify(selectedWorkspaceDetails.agents, null, 2) }}</pre>
+                    </div>
+
+                    <!-- MCP Servers -->
+                    <div v-if="selectedWorkspaceDetails.mcpServers && Object.keys(selectedWorkspaceDetails.mcpServers).length > 0" class="rounded-2xl p-4 transition-colors duration-200" :class="isDarkMode ? 'bg-[#40414f]' : 'bg-[#F7F7F8]'">
+                        <div class="text-sm font-medium mb-2 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-600'">MCP Servers</div>
+                        <pre class="whitespace-pre-wrap font-mono text-xs overflow-x-auto transition-colors duration-200" :class="isDarkMode ? 'text-gray-100' : 'text-gray-900'">{{ JSON.stringify(selectedWorkspaceDetails.mcpServers, null, 2) }}</pre>
+                    </div>
+
+                    <!-- Hooks -->
+                    <div v-if="selectedWorkspaceDetails.hooks && Object.keys(selectedWorkspaceDetails.hooks).length > 0" class="rounded-2xl p-4 transition-colors duration-200" :class="isDarkMode ? 'bg-[#40414f]' : 'bg-[#F7F7F8]'">
+                        <div class="text-sm font-medium mb-2 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-600'">Hooks</div>
+                        <pre class="whitespace-pre-wrap font-mono text-xs overflow-x-auto transition-colors duration-200" :class="isDarkMode ? 'text-gray-100' : 'text-gray-900'">{{ JSON.stringify(selectedWorkspaceDetails.hooks, null, 2) }}</pre>
+                    </div>
+
+                    <!-- 建立/更新時間 -->
+                    <div class="rounded-2xl p-4 transition-colors duration-200" :class="isDarkMode ? 'bg-[#40414f]' : 'bg-[#F7F7F8]'">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <div class="text-sm font-medium mb-1 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-600'">建立時間</div>
+                                <div class="text-sm transition-colors duration-200" :class="isDarkMode ? 'text-gray-100' : 'text-gray-900'">{{ formatDate(selectedWorkspaceDetails.createdAt) }}</div>
+                            </div>
+                            <div>
+                                <div class="text-sm font-medium mb-1 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-600'">更新時間</div>
+                                <div class="text-sm transition-colors duration-200" :class="isDarkMode ? 'text-gray-100' : 'text-gray-900'">{{ formatDate(selectedWorkspaceDetails.updatedAt) }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 統計資訊 Modal -->
+        <div v-if="showStatsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="showStatsModal = false">
+            <div class="rounded-3xl shadow-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col transition-colors duration-200" :class="isDarkMode ? 'bg-[#343541]' : 'bg-white'">
+                <div class="p-6 border-b transition-colors duration-200" :class="isDarkMode ? 'border-[#40414f]' : 'border-gray-200'">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-2xl font-bold transition-colors duration-200" :class="isDarkMode ? 'text-gray-100' : 'text-gray-900'">統計資訊</h2>
+                        <button @click="showStatsModal = false" class="btn-icon" :class="isDarkMode ? 'dark' : 'light'">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-6" v-if="sessionStats">
+                    <div class="grid grid-cols-2 gap-4 mb-6">
+                        <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-2xl p-4">
+                            <div class="text-sm text-blue-600 font-medium mb-1">總 Sessions</div>
+                            <div class="text-3xl font-bold text-blue-900">{{ sessionStats.total_sessions }}</div>
+                        </div>
+                        <div class="bg-gradient-to-br from-green-50 to-green-100 rounded-2xl p-4">
+                            <div class="text-sm text-green-600 font-medium mb-1">完成率</div>
+                            <div class="text-3xl font-bold text-green-900">
+                                {{ ((sessionStats.completed_sessions / sessionStats.total_sessions) * 100).toFixed(0) }}%
+                            </div>
+                        </div>
+                        <div class="bg-gradient-to-br from-purple-50 to-purple-100 rounded-2xl p-4">
+                            <div class="text-sm text-purple-600 font-medium mb-1">總成本</div>
+                            <div class="text-3xl font-bold text-purple-900">${{ sessionStats.total_cost_usd.toFixed(4) }}</div>
+                        </div>
+                        <div class="bg-gradient-to-br from-orange-50 to-orange-100 rounded-2xl p-4">
+                            <div class="text-sm text-orange-600 font-medium mb-1">平均時長</div>
+                            <div class="text-3xl font-bold text-orange-900">{{ Math.round(sessionStats.average_duration_ms) }}ms</div>
+                        </div>
+                    </div>
+
+                    <div class="rounded-2xl p-4 transition-colors duration-200" :class="isDarkMode ? 'bg-[#40414f]' : 'bg-[#F7F7F8]'">
+                        <h3 class="font-semibold mb-3 transition-colors duration-200" :class="isDarkMode ? 'text-gray-100' : 'text-gray-900'">最常用工具</h3>
+                        <div class="space-y-2">
+                            <div v-for="tool in sessionStats.most_used_tools.slice(0, 5)" :key="tool.tool" class="flex items-center">
+                                <div class="flex-1">
+                                    <div class="flex items-center justify-between mb-1">
+                                        <span class="font-medium transition-colors duration-200" :class="isDarkMode ? 'text-gray-100' : 'text-gray-900'">{{ tool.tool }}</span>
+                                        <span class="text-sm transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-600'">{{ tool.count }} 次</span>
+                                    </div>
+                                    <div class="w-full rounded-full h-2 transition-colors duration-200" :class="isDarkMode ? 'bg-[#565869]' : 'bg-gray-200'">
+                                        <div class="bg-[#10A37F] h-2 rounded-full transition-all" :style="{ width: (tool.count / sessionStats.most_used_tools[0].count * 100) + '%' }"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 設定 Modal -->
+        <div v-if="showSettings" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4" @click.self="showSettings = false">
+            <div class="rounded-3xl shadow-2xl max-w-md w-full transition-colors duration-200" :class="isDarkMode ? 'bg-[#343541]' : 'bg-white'">
+                <div class="p-6 border-b transition-colors duration-200" :class="isDarkMode ? 'border-[#40414f]' : 'border-gray-200'">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-2xl font-bold transition-colors duration-200" :class="isDarkMode ? 'text-gray-100' : 'text-gray-900'">設定</h2>
+                        <button @click="showSettings = false" class="btn-icon" :class="isDarkMode ? 'dark' : 'light'">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="p-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-700'">模型</label>
+                        <select v-model="settings.model" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-[#10A37F] focus:border-transparent transition-colors duration-200" :class="isDarkMode ? 'bg-[#40414f] text-gray-100 border-[#565869]' : 'bg-white text-gray-900 border-gray-300'">
+                            <option value="">預設</option>
+                            <option value="sonnet">Claude Sonnet</option>
+                            <option value="haiku">Claude Haiku</option>
+                            <option value="opus">Claude Opus</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium mb-2 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-700'">權限模式</label>
+                        <select v-model="settings.permissionMode" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-[#10A37F] focus:border-transparent transition-colors duration-200" :class="isDarkMode ? 'bg-[#40414f] text-gray-100 border-[#565869]' : 'bg-white text-gray-900 border-gray-300'">
+                            <option value="default">預設</option>
+                            <option value="acceptEdits">自動接受編輯</option>
+                            <option value="bypassPermissions">繞過權限</option>
+                            <option value="plan">規劃模式</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium mb-2 transition-colors duration-200" :class="isDarkMode ? 'text-gray-400' : 'text-gray-700'">最大回合數</label>
+                        <input v-model.number="settings.maxTurns" type="number" min="1" max="50" class="w-full px-3 py-2 border rounded-xl focus:ring-2 focus:ring-[#10A37F] focus:border-transparent transition-colors duration-200" :class="isDarkMode ? 'bg-[#40414f] text-gray-100 border-[#565869]' : 'bg-white text-gray-900 border-gray-300'">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast 通知 -->
+        <div class="fixed bottom-4 right-4 space-y-2 z-50">
+            <div
+                v-for="toast in toasts"
+                :key="toast.id"
+                :class="['toast', `toast-${toast.type}`]"
+            >
+                {{ toast.message }}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue
+
+        createApp({
+            data() {
+                return {
+                    // UI 狀態
+                    showSidebar: window.innerWidth >= 768,
+                    showWorkspacesModal: false,
+                    showStatsModal: false,
+                    showSettings: false,
+                    showCreateWorkspaceForm: false,
+                    showSettingsPanel: false,
+                    isDarkMode: localStorage.getItem('darkMode') === 'true',
+                    isSelectingFolder: false,
+
+                    // 聊天狀態
+                    messages: [],
+                    inputMessage: '',
+                    isQuerying: false,
+                    currentSessionId: null,
+                    currentWorkspace: '',
+
+                    // Session 狀態欄
+                    sessionStatus: '', // 'initializing', 'ready', 'completed'
+                    sessionResult: null, // { cost, turns, duration, success }
+
+                    // Session 統計（用於 Topbar 顯示）
+                    sessionTotalCost: 0,
+                    sessionMessageCount: 0,
+
+                    // 資料
+                    workspaces: [],
+                    recentSessions: [],
+                    sessionStats: null,
+
+                    // 表單
+                    newWorkspace: {
+                        workspacePath: '',
+                        systemPrompt: '',
+                        settingSources: ['project']
+                    },
+
+                    // 編輯工作空間
+                    showEditWorkspaceForm: false,
+                    editingWorkspace: null,
+                    editWorkspace: {
+                        workspacePath: '',
+                        systemPrompt: '',
+                        allowedTools: [],
+                        disallowedTools: [],
+                        agents: {},
+                        mcpServers: {},
+                        hooks: {},
+                        settingSources: ['project']
+                    },
+
+                    // 工作空間詳細資訊
+                    showWorkspaceDetailsModal: false,
+                    selectedWorkspaceDetails: null,
+
+                    // 設定
+                    settings: {
+                        model: '',
+                        permissionMode: 'default',
+                        maxTurns: 10
+                    },
+
+                    // Toast
+                    toasts: [],
+                    toastId: 0,
+
+                    // 範例提示
+                    examplePrompts: [
+                        { title: '列出檔案', prompt: '列出當前目錄的所有檔案' },
+                        { title: '分析程式碼', prompt: '分析 src 目錄中的程式碼結構' },
+                        { title: '執行測試', prompt: '執行所有單元測試' },
+                        { title: '生成文件', prompt: '為專案生成 README 文件' }
+                    ]
+                }
+            },
+
+            computed: {
+                hasStreamingMessage() {
+                    return this.messages.some(m => m.isStreaming)
+                }
+            },
+
+            methods: {
+                // === UI 控制 ===
+                startNewChat() {
+                    this.messages = []
+                    this.currentSessionId = null
+                    this.inputMessage = ''
+                    this.sessionStatus = ''
+                    this.sessionResult = null
+                    this.sessionTotalCost = 0
+                    this.sessionMessageCount = 0
+                },
+
+                useExamplePrompt(example) {
+                    this.inputMessage = example.prompt
+                    this.$nextTick(() => {
+                        this.$refs.messageInput.focus()
+                    })
+                },
+
+                autoResizeTextarea() {
+                    const textarea = this.$refs.messageInput
+                    if (textarea) {
+                        textarea.style.height = 'auto'
+                        textarea.style.height = Math.min(textarea.scrollHeight, 200) + 'px'
+                    }
+                },
+
+                scrollToBottom() {
+                    this.$nextTick(() => {
+                        const container = this.$refs.messagesContainer
+                        if (container) {
+                            container.scrollTop = container.scrollHeight
+                        }
+                    })
+                },
+
+                // === 訊息處理 ===
+                async sendMessage() {
+                    if (!this.inputMessage.trim() || !this.currentWorkspace || this.isQuerying) return
+
+                    const userMessage = this.inputMessage.trim()
+                    this.inputMessage = ''
+
+                    // 添加用戶訊息
+                    this.messages.push({
+                        type: 'user',
+                        text: userMessage
+                    })
+
+                    this.scrollToBottom()
+                    this.isQuerying = true
+
+                    // 重置 textarea 高度
+                    this.$nextTick(() => {
+                        const textarea = this.$refs.messageInput
+                        if (textarea) {
+                            textarea.style.height = 'auto'
+                        }
+                    })
+
+                    try {
+                        const requestBody = {
+                            workspacePath: this.currentWorkspace,
+                            prompt: userMessage,
+                            options: {}
+                        }
+
+                        // Resume 功能：如果有當前 session，自動繼續該 session
+                        if (this.currentSessionId) {
+                            requestBody.options.resume = this.currentSessionId
+                        }
+
+                        if (this.settings.model) requestBody.options.model = this.settings.model
+                        if (this.settings.permissionMode !== 'default') requestBody.options.permissionMode = this.settings.permissionMode
+                        if (this.settings.maxTurns) requestBody.options.maxTurns = this.settings.maxTurns
+
+                        // 添加超時控制（5 分鐘）
+                        const controller = new AbortController()
+                        const timeout = setTimeout(() => controller.abort(), 300000) // 5 minutes
+
+                        const response = await fetch('/api/query', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(requestBody),
+                            signal: controller.signal
+                        })
+
+                        // 清除超時計時器
+                        clearTimeout(timeout)
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP ${response.status}`)
+                        }
+
+                        // SSE 串流處理
+                        const reader = response.body.getReader()
+                        const decoder = new TextDecoder()
+                        let buffer = ''
+                        let assistantMessageIndex = -1
+
+                        while (true) {
+                            const { done, value } = await reader.read()
+                            if (done) break
+
+                            buffer += decoder.decode(value, { stream: true })
+                            const events = buffer.split('\n\n')
+                            buffer = events.pop() || ''
+
+                            for (const eventText of events) {
+                                if (!eventText.trim()) continue
+
+                                const lines = eventText.split('\n')
+                                let eventName = 'message'
+                                let eventData = null
+
+                                for (const line of lines) {
+                                    if (line.startsWith('event: ')) {
+                                        eventName = line.substring(7).trim()
+                                    } else if (line.startsWith('data: ')) {
+                                        try {
+                                            eventData = JSON.parse(line.substring(6))
+                                        } catch (e) {
+                                            console.error('Failed to parse SSE data:', e)
+                                        }
+                                    }
+                                }
+
+                                if (eventData) {
+                                    this.handleSSEMessage(eventName, eventData, assistantMessageIndex)
+
+                                    if (eventName === 'assistant_message' && assistantMessageIndex === -1) {
+                                        assistantMessageIndex = this.messages.length - 1
+                                    }
+                                }
+                            }
+                        }
+
+                        // 刷新 sessions 列表
+                        await this.fetchRecentSessions()
+
+                    } catch (error) {
+                        // 根據錯誤類型提供更明確的訊息
+                        let errorMessage = '查詢失敗'
+
+                        if (error.name === 'AbortError') {
+                            errorMessage = '查詢超時（超過 5 分鐘），請稍後再試'
+                        } else if (error.message.includes('network') || error.message.includes('Failed to fetch')) {
+                            errorMessage = '網路連線失敗，請檢查網路狀態後重試'
+                        } else if (error.message.includes('INCOMPLETE_CHUNKED_ENCODING')) {
+                            errorMessage = '伺服器回應中斷，請重試'
+                        } else if (error.message.startsWith('HTTP ')) {
+                            errorMessage = `伺服器錯誤 (${error.message})`
+                        } else {
+                            errorMessage = '查詢失敗: ' + error.message
+                        }
+
+                        this.showToast('error', errorMessage)
+                        console.error('Query error:', error)
+                    } finally {
+                        this.isQuerying = false
+                        this.scrollToBottom()
+                    }
+                },
+
+                handleSSEMessage(event, data, assistantMessageIndex) {
+                    switch(event) {
+                        case 'init':
+                            // 更新狀態欄而不是添加消息
+                            this.sessionStatus = 'initializing'
+                            this.sessionResult = null
+                            break
+
+                        case 'session_init':
+                            this.currentSessionId = data.session_id
+                            // 更新狀態欄而不是添加消息
+                            this.sessionStatus = 'ready'
+                            break
+
+                        case 'assistant_message':
+                            let content = ''
+                            let tools = []
+
+                            if (data.content && Array.isArray(data.content)) {
+                                // 提取文字內容
+                                content = data.content
+                                    .filter(block => block.type === 'text')
+                                    .map(block => block.text)
+                                    .join('\n\n')
+
+                                // 提取工具使用信息
+                                tools = this.parseToolBlocks(data.content)
+                            }
+
+                            if (assistantMessageIndex >= 0 && this.messages[assistantMessageIndex]) {
+                                // 更新現有訊息
+                                this.messages[assistantMessageIndex].content += content
+                                // 合併工具信息
+                                if (tools.length > 0) {
+                                    const existingTools = this.messages[assistantMessageIndex].tools || []
+                                    this.messages[assistantMessageIndex].tools = [...existingTools, ...tools]
+                                }
+                                this.messages[assistantMessageIndex].isStreaming = false
+                            } else {
+                                // 創建新訊息
+                                this.messages.push({
+                                    type: 'assistant',
+                                    content: content,
+                                    tools: tools,
+                                    isStreaming: false
+                                })
+                            }
+                            break
+
+                        case 'result':
+                            // 將 result 資料附加到最後一個 assistant 訊息
+                            const lastAssistantIndex = this.messages.map((m, i) => m.type === 'assistant' ? i : -1).filter(i => i >= 0).pop()
+                            if (lastAssistantIndex !== undefined && this.messages[lastAssistantIndex]) {
+                                this.messages[lastAssistantIndex].result = data
+                            }
+
+                            // 更新 session 統計
+                            this.sessionTotalCost += (data.total_cost_usd || 0)
+                            this.sessionMessageCount = this.messages.filter(m => m.type === 'user' || m.type === 'assistant').length
+
+                            // 更新狀態欄顯示結果統計
+                            this.sessionStatus = ''
+                            this.sessionResult = {
+                                cost: data.total_cost_usd?.toFixed(4) || '0.0000',
+                                turns: data.num_turns || 0,
+                                duration: data.duration_ms || 0,
+                                success: !data.is_error
+                            }
+                            this.showToast('success', '查詢完成')
+                            break
+
+                        case 'complete':
+                            break
+
+                        case 'heartbeat':
+                            // 心跳事件，不做處理（用於保持連線）
+                            break
+
+                        case 'error':
+                            this.messages.push({
+                                type: 'system',
+                                text: '錯誤: ' + data.error
+                            })
+                            this.showToast('error', '查詢錯誤: ' + data.error)
+                            break
+                    }
+
+                    this.scrollToBottom()
+                },
+
+                // === 工作空間管理 ===
+                async fetchWorkspaces() {
+                    try {
+                        const response = await fetch('/api/workspaces')
+                        const data = await response.json()
+                        if (data.success) {
+                            this.workspaces = data.data
+                            if (this.workspaces.length > 0 && !this.currentWorkspace) {
+                                this.currentWorkspace = this.workspaces[0].workspacePath
+                            }
+                        }
+                    } catch (error) {
+                        this.showToast('error', '載入工作空間失敗: ' + error.message)
+                    }
+                },
+
+                // 開啟資料夾選擇對話框（調用後端 API）
+                async openFolderDialog() {
+                    this.isSelectingFolder = true
+                    try {
+                        const response = await fetch('/api/workspaces/select-folder', {
+                            method: 'POST'
+                        })
+                        const data = await response.json()
+
+                        if (data.success && data.data?.folderPath) {
+                            this.newWorkspace.workspacePath = data.data.folderPath
+                            this.showToast('success', '資料夾已選擇')
+                        } else if (data.cancelled) {
+                            // 使用者取消，不顯示錯誤
+                        } else {
+                            this.showToast('error', data.error || '無法開啟資料夾選擇器')
+                        }
+                    } catch (error) {
+                        console.error('Failed to open folder dialog:', error)
+                        this.showToast('error', '無法開啟資料夾選擇器: ' + error.message)
+                    } finally {
+                        this.isSelectingFolder = false
+                    }
+                },
+
+                async createWorkspace() {
+                    if (!this.newWorkspace.workspacePath) {
+                        this.showToast('error', '請輸入工作空間路徑')
+                        return
+                    }
+
+                    try {
+                        const response = await fetch('/api/workspaces', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(this.newWorkspace)
+                        })
+                        const data = await response.json()
+                        if (data.success) {
+                            this.showToast('success', '工作空間已建立')
+                            await this.fetchWorkspaces()
+                            this.currentWorkspace = this.newWorkspace.workspacePath
+                            this.newWorkspace = { workspacePath: '', systemPrompt: '', settingSources: ['project'] }
+                            this.showCreateWorkspaceForm = false
+                        } else {
+                            this.showToast('error', data.error || '建立失敗')
+                        }
+                    } catch (error) {
+                        this.showToast('error', '建立失敗: ' + error.message)
+                    }
+                },
+
+                async deleteWorkspace(workspacePath) {
+                    if (!confirm('確定要刪除此工作空間嗎？')) return
+
+                    try {
+                        const encodedPath = encodeURIComponent(workspacePath)
+                        const response = await fetch(`/api/workspaces/${encodedPath}`, {
+                            method: 'DELETE'
+                        })
+                        const data = await response.json()
+                        if (data.success) {
+                            this.showToast('success', '工作空間已刪除')
+                            if (this.currentWorkspace === workspacePath) {
+                                this.currentWorkspace = ''
+                            }
+                            await this.fetchWorkspaces()
+                        } else {
+                            this.showToast('error', data.error || '刪除失敗')
+                        }
+                    } catch (error) {
+                        this.showToast('error', '刪除失敗: ' + error.message)
+                    }
+                },
+
+                async editWorkspaceStart(workspacePath) {
+                    try {
+                        // 獲取工作空間完整資訊
+                        const details = await this.fetchWorkspaceDetails(workspacePath)
+                        if (details) {
+                            // 填充編輯表單
+                            this.editWorkspace = {
+                                workspacePath: details.workspacePath,
+                                systemPrompt: details.systemPrompt || '',
+                                allowedTools: details.allowedTools || [],
+                                disallowedTools: details.disallowedTools || [],
+                                agents: details.agents || {},
+                                mcpServers: details.mcpServers || {},
+                                hooks: details.hooks || {},
+                                settingSources: details.settingSources || ['project'],
+                                // 用於顯示的文字格式
+                                allowedToolsText: (details.allowedTools || []).join(', '),
+                                disallowedToolsText: (details.disallowedTools || []).join(', ')
+                            }
+                            this.editingWorkspace = workspacePath
+                            this.showEditWorkspaceForm = true
+                        }
+                    } catch (error) {
+                        this.showToast('error', '載入工作空間資訊失敗: ' + error.message)
+                    }
+                },
+
+                async fetchWorkspaceDetails(workspacePath) {
+                    try {
+                        const encodedPath = encodeURIComponent(workspacePath)
+                        const response = await fetch(`/api/workspaces/${encodedPath}`)
+                        const data = await response.json()
+                        if (data.success) {
+                            return data.data
+                        } else {
+                            this.showToast('error', data.error || '獲取工作空間資訊失敗')
+                            return null
+                        }
+                    } catch (error) {
+                        this.showToast('error', '獲取工作空間資訊失敗: ' + error.message)
+                        return null
+                    }
+                },
+
+                async updateWorkspace() {
+                    if (!this.editingWorkspace) return
+
+                    try {
+                        // 將文字格式轉換為陣列
+                        const allowedTools = this.editWorkspace.allowedToolsText
+                            ? this.editWorkspace.allowedToolsText.split(',').map(t => t.trim()).filter(t => t)
+                            : []
+                        const disallowedTools = this.editWorkspace.disallowedToolsText
+                            ? this.editWorkspace.disallowedToolsText.split(',').map(t => t.trim()).filter(t => t)
+                            : []
+
+                        // 只傳送有值的欄位，避免傳送 null
+                        const updateData = {}
+
+                        // System Prompt - 只有非空字串才加入
+                        if (this.editWorkspace.systemPrompt && this.editWorkspace.systemPrompt.trim()) {
+                            updateData.systemPrompt = this.editWorkspace.systemPrompt
+                        }
+
+                        // Allowed Tools - 只有非空陣列才加入
+                        if (allowedTools.length > 0) {
+                            updateData.allowedTools = allowedTools
+                        }
+
+                        // Disallowed Tools - 只有非空陣列才加入
+                        if (disallowedTools.length > 0) {
+                            updateData.disallowedTools = disallowedTools
+                        }
+
+                        // Agents - 只有非空物件才加入
+                        if (this.editWorkspace.agents && Object.keys(this.editWorkspace.agents).length > 0) {
+                            updateData.agents = this.editWorkspace.agents
+                        }
+
+                        // MCP Servers - 只有非空物件才加入
+                        if (this.editWorkspace.mcpServers && Object.keys(this.editWorkspace.mcpServers).length > 0) {
+                            updateData.mcpServers = this.editWorkspace.mcpServers
+                        }
+
+                        // Hooks - 只有非空物件才加入
+                        if (this.editWorkspace.hooks && Object.keys(this.editWorkspace.hooks).length > 0) {
+                            updateData.hooks = this.editWorkspace.hooks
+                        }
+
+                        // Setting Sources - 永遠傳送（如果有值）
+                        if (this.editWorkspace.settingSources && this.editWorkspace.settingSources.length > 0) {
+                            updateData.settingSources = this.editWorkspace.settingSources
+                        }
+
+                        const encodedPath = encodeURIComponent(this.editingWorkspace)
+                        const response = await fetch(`/api/workspaces/${encodedPath}`, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(updateData)
+                        })
+                        const data = await response.json()
+                        if (data.success) {
+                            this.showToast('success', '工作空間已更新')
+                            await this.fetchWorkspaces()
+                            this.showEditWorkspaceForm = false
+                            this.editingWorkspace = null
+                        } else {
+                            this.showToast('error', data.error || '更新失敗')
+                        }
+                    } catch (error) {
+                        this.showToast('error', '更新失敗: ' + error.message)
+                    }
+                },
+
+                async viewWorkspaceDetails(workspacePath) {
+                    try {
+                        const details = await this.fetchWorkspaceDetails(workspacePath)
+                        if (details) {
+                            this.selectedWorkspaceDetails = details
+                            this.showWorkspaceDetailsModal = true
+                        }
+                    } catch (error) {
+                        this.showToast('error', '載入工作空間資訊失敗: ' + error.message)
+                    }
+                },
+
+                onWorkspaceChange() {
+                    // 可以在這裡加入工作空間切換時的邏輯
+                },
+
+                // === Sessions 管理 ===
+                async fetchRecentSessions() {
+                    try {
+                        const response = await fetch('/api/sessions?limit=10&offset=0')
+                        const data = await response.json()
+                        if (data.success) {
+                            // 為每個 session 獲取第一條使用者訊息
+                            const sessionsWithMessages = await Promise.all(
+                                data.data.sessions.map(async (session) => {
+                                    try {
+                                        const msgResponse = await fetch(`/api/sessions/${session.session_id}/messages?message_type=user&limit=1`)
+                                        const msgData = await msgResponse.json()
+                                        if (msgData.success && msgData.data.messages.length > 0) {
+                                            const firstMsg = msgData.data.messages[0]
+                                            const content = JSON.parse(firstMsg.message_content)
+
+                                            // 提取文字內容
+                                            let text = ''
+                                            if (content.message?.content) {
+                                                if (Array.isArray(content.message.content)) {
+                                                    const textBlock = content.message.content.find(block => block.type === 'text')
+                                                    text = textBlock?.text || ''
+                                                } else if (typeof content.message.content === 'string') {
+                                                    text = content.message.content
+                                                }
+                                            }
+
+                                            session.first_user_message = text
+                                        }
+                                    } catch (error) {
+                                        console.error(`Failed to fetch first message for session ${session.session_id}:`, error)
+                                    }
+                                    return session
+                                })
+                            )
+                            this.recentSessions = sessionsWithMessages
+                        }
+                    } catch (error) {
+                        console.error('Failed to fetch sessions:', error)
+                    }
+                },
+
+                async loadSession(session) {
+                    this.currentSessionId = session.session_id
+                    this.currentWorkspace = session.workspace_path
+
+                    // 重置 session 統計
+                    this.sessionTotalCost = 0
+                    this.sessionMessageCount = 0
+
+                    // 載入 session 訊息
+                    try {
+                        const response = await fetch(`/api/sessions/${session.session_id}/messages`)
+                        const data = await response.json()
+                        if (data.success) {
+                            // 轉換訊息格式為聊天格式
+                            this.messages = this.convertSessionMessages(data.data.messages)
+
+                            // 計算總成本和訊息數
+                            this.messages.forEach(msg => {
+                                if (msg.result && msg.result.total_cost_usd) {
+                                    this.sessionTotalCost += msg.result.total_cost_usd
+                                }
+                            })
+                            this.sessionMessageCount = this.messages.filter(m => m.type === 'user' || m.type === 'assistant').length
+
+                            this.scrollToBottom()
+                        }
+                    } catch (error) {
+                        this.showToast('error', '載入 session 失敗: ' + error.message)
+                    }
+                },
+
+                async deleteSession(session) {
+                    // 確認刪除
+                    if (!confirm(`確定要刪除這個對話嗎？\n\n"${this.getSessionTitle(session)}"\n\n此操作無法復原。`)) {
+                        return
+                    }
+
+                    try {
+                        const response = await fetch(`/api/sessions/${session.session_id}`, {
+                            method: 'DELETE'
+                        })
+                        const data = await response.json()
+
+                        if (data.success) {
+                            this.showToast('success', '對話已刪除')
+
+                            // 如果刪除的是當前 session，清空訊息
+                            if (this.currentSessionId === session.session_id) {
+                                this.messages = []
+                                this.currentSessionId = null
+                            }
+
+                            // 重新載入 sessions 列表
+                            await this.fetchRecentSessions()
+
+                            // 刷新統計資料
+                            await this.fetchSessionStats()
+                        } else {
+                            this.showToast('error', data.error || '刪除失敗')
+                        }
+                    } catch (error) {
+                        console.error('Failed to delete session:', error)
+                        this.showToast('error', '刪除失敗: ' + error.message)
+                    }
+                },
+
+                convertSessionMessages(messages) {
+                    const converted = []
+
+                    for (const msg of messages) {
+                        try {
+                            const content = JSON.parse(msg.message_content)
+
+                            if (msg.message_type === 'system' && msg.message_subtype === 'init') {
+                                // 跳過 system init 消息（已改為狀態欄顯示）
+                                continue
+                            } else if (msg.message_type === 'user') {
+                                // 處理用戶消息
+                                // 支援多種資料格式：SDKUserMessage、字串、Anthropic API 標準格式
+                                const message = content.message || content
+                                let text = ''
+
+                                if (message.content) {
+                                    if (Array.isArray(message.content)) {
+                                        // Claude SDK 格式：[{type: 'text', text: '...'}]
+                                        text = message.content
+                                            .filter(block => block.type === 'text')
+                                            .map(block => block.text)
+                                            .join('\n\n')
+                                    } else if (typeof message.content === 'string') {
+                                        // 字串格式
+                                        text = message.content
+                                    }
+                                } else if (typeof message === 'string') {
+                                    // 直接是字串
+                                    text = message
+                                } else if (message.role === 'user' && Array.isArray(message.content)) {
+                                    // Anthropic API 標準格式
+                                    text = message.content
+                                        .filter(block => block.type === 'text')
+                                        .map(block => block.text)
+                                        .join('\n\n')
+                                }
+
+                                if (text) {
+                                    converted.push({
+                                        type: 'user',
+                                        text: text
+                                    })
+                                }
+                            } else if (msg.message_type === 'assistant') {
+                                const message = content.message || {}
+                                let text = ''
+                                let tools = []
+
+                                if (message.content) {
+                                    // 提取文字內容
+                                    text = message.content
+                                        .filter(block => block.type === 'text')
+                                        .map(block => block.text)
+                                        .join('\n\n')
+
+                                    // 提取工具使用信息
+                                    tools = this.parseToolBlocks(message.content)
+                                }
+
+                                if (text || tools.length > 0) {
+                                    converted.push({
+                                        type: 'assistant',
+                                        content: text,
+                                        tools: tools
+                                    })
+                                }
+                            } else if (msg.message_type === 'result') {
+                                // 將 result 附加到最後一個 assistant 訊息
+                                const lastAssistantIndex = converted.map((m, i) => m.type === 'assistant' ? i : -1).filter(i => i >= 0).pop()
+                                if (lastAssistantIndex !== undefined && converted[lastAssistantIndex]) {
+                                    converted[lastAssistantIndex].result = content
+                                }
+                            }
+                        } catch (e) {
+                            console.error('Failed to parse message:', e)
+                        }
+                    }
+
+                    return converted
+                },
+
+                getSessionTitle(session) {
+                    // 從 session metadata 提取第一條使用者訊息作為標題
+                    // 如果沒有，使用 workspace 名稱
+                    if (session.first_user_message) {
+                        // 截斷過長的訊息，最多顯示 60 個字元
+                        const message = session.first_user_message
+                        return message.length > 60 ? message.substring(0, 60) + '...' : message
+                    }
+                    return session.workspace_path.split('/').pop() || '新對話'
+                },
+
+                getWorkspaceName(workspacePath) {
+                    // 從路徑中提取 workspace 名稱
+                    return workspacePath.split('/').pop() || 'Unknown'
+                },
+
+                // === 統計資訊 ===
+                async fetchSessionStats() {
+                    try {
+                        const response = await fetch('/api/sessions/stats')
+                        const data = await response.json()
+                        if (data.success) {
+                            this.sessionStats = data.data
+                        }
+                    } catch (error) {
+                        console.error('Failed to fetch stats:', error)
+                    }
+                },
+
+                // === 工具函數 ===
+                renderMarkdown(content) {
+                    if (!content) return ''
+                    return marked.parse(content)
+                },
+
+                formatDate(dateString) {
+                    // 確保正確解析 UTC 時間並轉換為 Asia/Taipei 時區
+                    let date
+
+                    // 處理不同的時間格式，統一轉換為 ISO 8601 格式
+                    if (!dateString.endsWith('Z') && !dateString.includes('+')) {
+                        // 如果沒有時區標記，假設是 UTC 時間
+                        // 將 '2025-11-03 05:53:27' 轉換為 '2025-11-03T05:53:27Z'
+                        const normalizedString = dateString.replace(' ', 'T') + 'Z'
+                        date = new Date(normalizedString)
+                    } else {
+                        date = new Date(dateString)
+                    }
+
+                    const now = new Date()
+                    const diff = now - date
+
+                    if (diff < 60000) return '剛剛'
+                    if (diff < 3600000) return Math.floor(diff / 60000) + ' 分鐘前'
+                    if (diff < 86400000) return Math.floor(diff / 3600000) + ' 小時前'
+                    if (diff < 604800000) return Math.floor(diff / 86400000) + ' 天前'
+
+                    // 使用完整的日期時間格式，自動轉換為 Asia/Taipei 時區
+                    return date.toLocaleString('zh-TW', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        timeZone: 'Asia/Taipei'
+                    })
+                },
+
+                showToast(type, message) {
+                    const id = this.toastId++
+                    this.toasts.push({ id, type, message })
+
+                    setTimeout(() => {
+                        this.toasts = this.toasts.filter(t => t.id !== id)
+                    }, 3000)
+                },
+
+                // === API Docs ===
+                openApiDocs() {
+                    window.open('/swagger', '_blank')
+                },
+
+                // === 深色模式切換 ===
+                toggleDarkMode() {
+                    this.isDarkMode = !this.isDarkMode
+                    localStorage.setItem('darkMode', this.isDarkMode ? 'true' : 'false')
+                },
+
+                // === 工具解析 ===
+                parseToolBlocks(contentBlocks) {
+                    if (!contentBlocks || !Array.isArray(contentBlocks)) {
+                        return []
+                    }
+
+                    const tools = []
+                    const toolUseMap = new Map()
+                    const toolResultMap = new Map()
+
+                    for (const block of contentBlocks) {
+                        if (block.type === 'tool_use') {
+                            toolUseMap.set(block.id, {
+                                id: block.id,
+                                name: block.name,
+                                input: block.input
+                            })
+                        } else if (block.type === 'tool_result') {
+                            toolResultMap.set(block.tool_use_id, {
+                                content: block.content,
+                                is_error: block.is_error
+                            })
+                        }
+                    }
+
+                    for (const [id, toolUse] of toolUseMap) {
+                        const toolResult = toolResultMap.get(id)
+                        tools.push({
+                            id,
+                            name: toolUse.name,
+                            input: toolUse.input,
+                            result: toolResult ? toolResult.content : null,
+                            is_error: toolResult ? toolResult.is_error : false,
+                            expanded: false
+                        })
+                    }
+
+                    return tools
+                },
+
+                getToolIcon(toolName) {
+                    const icons = {
+                        'Read': {
+                            icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253',
+                            color: 'text-blue-600 bg-blue-50'
+                        },
+                        'Edit': {
+                            icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z',
+                            color: 'text-green-600 bg-green-50'
+                        },
+                        'Write': {
+                            icon: 'M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z',
+                            color: 'text-purple-600 bg-purple-50'
+                        },
+                        'Bash': {
+                            icon: 'M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z',
+                            color: 'text-gray-700 bg-gray-50'
+                        },
+                        'Glob': {
+                            icon: 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z',
+                            color: 'text-yellow-600 bg-yellow-50'
+                        },
+                        'Grep': {
+                            icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z',
+                            color: 'text-orange-600 bg-orange-50'
+                        }
+                    }
+
+                    return icons[toolName] || {
+                        icon: 'M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4',
+                        color: 'text-indigo-600 bg-indigo-50'
+                    }
+                },
+
+                toggleToolExpand(tool) {
+                    tool.expanded = !tool.expanded
+                }
+            },
+
+            async mounted() {
+                // 初始化載入資料
+                await this.fetchWorkspaces()
+                await this.fetchRecentSessions()
+                await this.fetchSessionStats()
+
+                // 監聽視窗大小變化
+                window.addEventListener('resize', () => {
+                    this.showSidebar = window.innerWidth >= 768
+                })
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>

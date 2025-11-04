@@ -10,6 +10,7 @@ import {
     UpdateSettingsSchema,
     WorkspacePathParamSchema
 } from '../schemas/settings.schema'
+import { spawn } from 'child_process'
 
 export const createSettingsRoutes = (db: DatabaseService) => new Elysia({ prefix: '/api/workspaces' })
 
@@ -291,6 +292,180 @@ export const createSettingsRoutes = (db: DatabaseService) => new Elysia({ prefix
         detail: {
             summary: '列出所有工作空間',
             description: '取得所有工作空間的清單（按更新時間排序）',
+            tags: ['Settings']
+        }
+    })
+
+    /**
+     * POST /api/workspaces/select-folder
+     * 開啟系統原生資料夾選擇對話框
+     */
+    .post('/select-folder', async ({ set, log, requestId }) => {
+        try {
+            const platform = process.platform
+            let folderPath: string | null = null
+
+            log.info(
+                {
+                    event: 'select_folder_start',
+                    requestId,
+                    platform
+                },
+                'Opening folder selection dialog'
+            )
+
+            if (platform === 'darwin') {
+                // macOS - 使用 osascript (AppleScript)
+                folderPath = await new Promise((resolve, reject) => {
+                    const script = `
+                        tell application "System Events"
+                            activate
+                            set selectedFolder to choose folder with prompt "選擇工作空間資料夾"
+                            return POSIX path of selectedFolder
+                        end tell
+                    `
+                    const process = spawn('osascript', ['-e', script])
+                    let output = ''
+                    let error = ''
+
+                    process.stdout.on('data', (data) => {
+                        output += data.toString()
+                    })
+
+                    process.stderr.on('data', (data) => {
+                        error += data.toString()
+                    })
+
+                    process.on('close', (code) => {
+                        if (code === 0 && output.trim()) {
+                            // 移除尾部斜線
+                            const path = output.trim().replace(/\/$/, '')
+                            resolve(path)
+                        } else if (code === -128) {
+                            // 使用者取消
+                            resolve(null)
+                        } else {
+                            reject(new Error(error || 'Failed to select folder'))
+                        }
+                    })
+                })
+            } else if (platform === 'win32') {
+                // Windows - 使用 PowerShell
+                folderPath = await new Promise((resolve, reject) => {
+                    const script = `
+                        Add-Type -AssemblyName System.Windows.Forms
+                        $folderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog
+                        $folderBrowser.Description = "選擇工作空間資料夾"
+                        $folderBrowser.ShowNewFolderButton = $true
+                        $result = $folderBrowser.ShowDialog()
+                        if ($result -eq [System.Windows.Forms.DialogResult]::OK) {
+                            Write-Output $folderBrowser.SelectedPath
+                        }
+                    `
+                    const process = spawn('powershell', ['-Command', script])
+                    let output = ''
+                    let error = ''
+
+                    process.stdout.on('data', (data) => {
+                        output += data.toString()
+                    })
+
+                    process.stderr.on('data', (data) => {
+                        error += data.toString()
+                    })
+
+                    process.on('close', (code) => {
+                        if (code === 0 && output.trim()) {
+                            resolve(output.trim())
+                        } else {
+                            resolve(null)
+                        }
+                    })
+                })
+            } else {
+                // Linux - 使用 zenity (需要安裝)
+                folderPath = await new Promise((resolve, reject) => {
+                    const process = spawn('zenity', [
+                        '--file-selection',
+                        '--directory',
+                        '--title=選擇工作空間資料夾'
+                    ])
+                    let output = ''
+                    let error = ''
+
+                    process.stdout.on('data', (data) => {
+                        output += data.toString()
+                    })
+
+                    process.stderr.on('data', (data) => {
+                        error += data.toString()
+                    })
+
+                    process.on('close', (code) => {
+                        if (code === 0 && output.trim()) {
+                            resolve(output.trim())
+                        } else if (code === 1) {
+                            // 使用者取消
+                            resolve(null)
+                        } else {
+                            reject(new Error('zenity not installed. Please install zenity to use folder selection.'))
+                        }
+                    })
+                })
+            }
+
+            if (folderPath) {
+                log.info(
+                    {
+                        event: 'folder_selected',
+                        requestId,
+                        folderPath
+                    },
+                    'Folder selected successfully'
+                )
+
+                return {
+                    success: true,
+                    data: {
+                        folderPath
+                    }
+                }
+            } else {
+                log.info(
+                    {
+                        event: 'folder_selection_cancelled',
+                        requestId
+                    },
+                    'Folder selection cancelled by user'
+                )
+
+                return {
+                    success: false,
+                    cancelled: true,
+                    message: 'Folder selection cancelled'
+                }
+            }
+        } catch (error: any) {
+            set.status = 500
+
+            log.error(
+                {
+                    event: 'select_folder_error',
+                    requestId,
+                    error: error.message
+                },
+                'Failed to open folder selection dialog'
+            )
+
+            return {
+                success: false,
+                error: error.message || 'Failed to open folder selection dialog'
+            }
+        }
+    }, {
+        detail: {
+            summary: '選擇資料夾',
+            description: '開啟系統原生資料夾選擇對話框，返回使用者選擇的資料夾路徑',
             tags: ['Settings']
         }
     })
