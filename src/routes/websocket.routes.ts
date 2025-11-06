@@ -9,7 +9,30 @@ import { AgentService } from '../services/agent.service'
 import type { SettingsService } from '../services/settings.service'
 import type { SessionRecorder } from '../services/session-recorder'
 import { randomUUID } from 'crypto'
-import type { SDKUserMessage } from '../types/session.types'
+import type { SDKUserMessage, SDKMessage } from '@anthropic-ai/claude-agent-sdk'
+
+/**
+ * WebSocket 回應型別定義
+ */
+export type WSQueryResponse = {
+    requestId: string
+    message: SDKMessage
+}
+
+export type WSCompleteResponse = {
+    requestId: string
+    type: 'complete'
+    sessionId?: string
+    duration: number
+}
+
+export type WSErrorResponse = {
+    requestId: string
+    type: 'error'
+    error: string
+}
+
+export type WSResponse = WSQueryResponse | WSCompleteResponse | WSErrorResponse
 
 /**
  * WebSocket 訊息驗證 Schema
@@ -60,10 +83,11 @@ export const createWebSocketRoutes = (
                 // 使用全局 Map 追蹤活躍請求
                 activeConnections.set(connectionId, new Set())
 
-                // 儲存連接 ID 到 ws.data
-                ;(ws as any).connectionId = connectionId
+                // 儲存連接 ID 到 ws.data（Elysia 建議的方式）
+                ws.data.connectionId = connectionId
 
                 console.log(`[${connectionId}] WebSocket connected`)
+                console.log(`[${connectionId}] Active connections count:`, activeConnections.size)
                 ws.send(JSON.stringify({
                     type: 'connected',
                     message: 'WebSocket connection established',
@@ -73,13 +97,19 @@ export const createWebSocketRoutes = (
 
             // 接收訊息時（已由 Elysia 自動驗證和解析）
             async message(ws, data) {
-                const connectionId = (ws as any).connectionId
+                const connectionId = ws.data.connectionId
+
+                console.log(`[WS] Received message, connectionId:`, connectionId)
+                console.log(`[WS] Active connections:`, Array.from(activeConnections.keys()))
+
                 const activeRequests = activeConnections.get(connectionId)
 
                 if (!activeRequests) {
+                    console.error(`[${connectionId}] Connection not found in activeConnections!`)
                     ws.send(JSON.stringify({
                         type: 'error',
-                        error: 'Connection not initialized'
+                        error: 'Connection not initialized',
+                        requestId: data.requestId || undefined
                     }))
                     return
                 }
@@ -99,7 +129,7 @@ export const createWebSocketRoutes = (
 
             // 連接關閉時
             close(ws) {
-                const connectionId = (ws as any).connectionId
+                const connectionId = ws.data.connectionId
                 const activeRequests = activeConnections.get(connectionId)
 
                 console.log(
@@ -110,6 +140,7 @@ export const createWebSocketRoutes = (
                 // 清理連接狀態
                 if (connectionId) {
                     activeConnections.delete(connectionId)
+                    console.log(`[${connectionId}] Connection removed, remaining:`, activeConnections.size)
                 }
             }
         })
@@ -120,7 +151,7 @@ export const createWebSocketRoutes = (
     async function handleQueryRequest(
         ws: any,
         request: any,
-        connectionId: string,
+        _connectionId: string,
         activeRequests: Set<string>
     ) {
         const { requestId, workspacePath, prompt, options = {} } = request
@@ -213,7 +244,7 @@ export const createWebSocketRoutes = (
             })
 
         } catch (error: any) {
-            const duration = Date.now() - startTime
+            const _duration = Date.now() - startTime
             console.error(`[${requestId}] Query error:`, error)
 
             // 發送錯誤訊息

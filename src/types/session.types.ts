@@ -133,56 +133,16 @@ export interface DateRange {
 }
 
 /**
- * Agent SDK Message 型別（簡化版）
+ * 使用 Claude Agent SDK 原生型別
+ * 這些型別從 SDK 直接匯出，確保與 SDK 完全相容
  */
-export interface SDKMessage {
-    type: 'system' | 'user' | 'assistant' | 'result'
-    subtype?: string
-    session_id?: string
-    uuid?: string
-    message?: {
-        content?: Array<{
-            type: string
-            name?: string
-            [key: string]: any
-        }>
-        [key: string]: any
-    }
-
-    // system.init 專屬欄位
-    model?: string
-    permissionMode?: string
-    cwd?: string
-    tools?: string[]
-    mcp_servers?: any[]
-
-    // result 專屬欄位
-    total_cost_usd?: number
-    num_turns?: number
-    duration_ms?: number
-    duration_api_ms?: number
-    is_error?: boolean
-    error_message?: string
-
-    [key: string]: any
-}
-
-/**
- * SDK User Message 型別
- */
-export interface SDKUserMessage {
-    type: 'user'
-    uuid: string
-    session_id: string
-    message: {
-        role: 'user'
-        content: Array<{
-            type: 'text'
-            text: string
-        }>
-    }
-    parent_tool_use_id: string | null
-}
+export type {
+    SDKMessage,
+    SDKUserMessage,
+    SDKAssistantMessage,
+    SDKSystemMessage,
+    SDKResultMessage
+} from '@anthropic-ai/claude-agent-sdk'
 
 /**
  * 佇列項目

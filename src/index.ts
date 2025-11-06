@@ -64,23 +64,14 @@ const cleanupJob = setInterval(() => {
 
 // 建立 Elysia 應用
 const app = new Elysia()
-    // Request ID Middleware (在最前面)
-    .derive(({ request }) => {
-        const requestId = request.headers.get('x-request-id') || randomUUID()
-        return { requestId }
-    })
-
-    // Logger Middleware
+    // Logger Middleware (先載入所有 plugins)
     .use(
         elysiaFileLogger({
             file: fileLoggerPath(),
             autoLogging: {
                 ignore: (ctx) => ctx.path === '/api/health' // 忽略健康檢查
             }
-        }).derive({ as: "global" }, ({ log, ...rest }) => ({
-            fileLogger: log,
-            ...rest,
-        }))
+        })
     )
     .use(
         elysiaLogger({
@@ -90,6 +81,12 @@ const app = new Elysia()
             }
         })
     )
+
+    // 統一處理 requestId 和 fileLogger 注入 (在所有 plugins 之後)
+    .derive({ as: 'global' }, ({ request, log }) => ({
+        requestId: request.headers.get('x-request-id') || randomUUID(),
+        fileLogger: log
+    }))
 
     // CORS 支援
     .use(cors())

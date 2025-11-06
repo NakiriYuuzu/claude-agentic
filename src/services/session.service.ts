@@ -564,12 +564,6 @@ export class SessionService {
             const stats = this.db.query<any, any[]>(statsQuery).get(...values)
 
             // 最常使用的工具
-            const toolsQuery = `
-                SELECT tools_used
-                FROM session_messages
-                ${whereClause ? whereClause.replace('workspace_path', 's.workspace_path').replace('created_at', 's.created_at') : ''}
-                ${whereClause ? 'AND' : 'WHERE'} tools_used IS NOT NULL
-            `
             const toolMessages = this.db.query<{ tools_used: string }, any[]>(
                 `SELECT sm.tools_used
                  FROM session_messages sm

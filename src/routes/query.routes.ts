@@ -8,7 +8,7 @@ import { AgentService } from '../services/agent.service'
 import type { SettingsService } from '../services/settings.service'
 import type { SessionRecorder } from '../services/session-recorder'
 import { randomUUID } from 'crypto'
-import type { SDKUserMessage, SDKMessage } from '../types/session.types'
+import type { SDKUserMessage, SDKMessage } from '@anthropic-ai/claude-agent-sdk'
 
 export const createQueryRoutes = (
     settingsService: SettingsService,

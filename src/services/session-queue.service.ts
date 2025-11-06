@@ -1,4 +1,5 @@
-import type { QueueItem, SDKMessage, CreateSessionData, SessionResult } from '../types/session.types'
+import type { QueueItem, CreateSessionData, SessionResult } from '../types/session.types'
+import type { SDKMessage } from '@anthropic-ai/claude-agent-sdk'
 import type { SessionService } from './session.service'
 import { logger } from '../utils/logger'
 

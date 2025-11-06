@@ -18,7 +18,6 @@
         "allowSyntheticDefaultImports": true,
         "isolatedModules": true,
 
-        "tabSize": 4,
         "noImplicitAny": true,
         "strictNullChecks": true,
         "strictFunctionTypes": true,

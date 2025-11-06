@@ -1,6 +1,6 @@
 import type { AgentService } from './agent.service'
 import type { SessionQueueService } from './session-queue.service'
-import type { SDKMessage } from '../types/session.types'
+import type { SDKMessage } from '@anthropic-ai/claude-agent-sdk'
 import type { QueryRequest } from '../types/query.types'
 import { logger } from '../utils/logger'
 
@@ -54,7 +54,7 @@ export class SessionRecorder {
                     // 檢查錯誤
                     if (message.type === 'result' && message.is_error) {
                         hasError = true
-                        errorMessage = message.error_message || 'Unknown error'
+                        errorMessage = message.result || 'Unknown error'
                     }
                 } catch (recordError: any) {
                     // 記錄失敗不應中斷 query 執行

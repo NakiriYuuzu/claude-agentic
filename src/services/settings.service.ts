@@ -4,23 +4,13 @@
  */
 
 import { DatabaseService } from './database.service'
+import type { Options } from '@anthropic-ai/claude-agent-sdk'
 
 /**
- * Claude Agent SDK Options (簡化版本)
+ * Agent Options 型別
+ * 直接使用 Claude Agent SDK 的 Options 型別
  */
-export interface AgentOptions {
-    cwd?: string
-    systemPrompt?: string | { type: 'preset', preset: string }
-    allowedTools?: string[]
-    disallowedTools?: string[]
-    agents?: Record<string, any>
-    mcpServers?: Record<string, any>
-    hooks?: Record<string, any>
-    model?: string
-    permissionMode?: 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan'
-    maxTurns?: number
-    settingSources?: Array<'user' | 'project' | 'local'>
-}
+export type AgentOptions = Options
 
 export class SettingsService {
     private db: DatabaseService

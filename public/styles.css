@@ -75,41 +75,115 @@
                 @apply bg-[#343541] border-[#40414f] text-gray-400;
             }
 
-            /* 工具面板樣式 */
+            /* 工具面板樣式 - Claude.ai 風格 */
             .tool-panel {
-                @apply w-full mt-3 rounded-xl border transition-colors duration-200;
+                @apply w-full rounded-xl border transition-all duration-300 overflow-hidden backdrop-blur-sm;
             }
 
             .tool-panel.light {
-                @apply bg-gray-50 border-gray-200;
+                @apply bg-gradient-to-br from-gray-50 to-gray-100/50 border-gray-200 shadow-sm hover:shadow-md;
             }
 
             .tool-panel.dark {
-                @apply bg-[#343541] border-[#40414f];
+                @apply bg-gradient-to-br from-[#343541] to-[#2a2b32]/50 border-[#40414f] shadow-lg hover:shadow-xl;
             }
 
             .tool-header {
-                @apply w-full flex items-center justify-between px-4 py-2 cursor-pointer transition-colors duration-200;
+                @apply w-full flex items-center justify-between px-4 py-3 cursor-pointer transition-all duration-300 rounded-t-xl;
             }
 
             .tool-header.light:hover {
-                @apply bg-gray-100;
+                @apply bg-gradient-to-r from-gray-100 to-gray-50;
             }
 
             .tool-header.dark:hover {
-                @apply bg-[#40414f];
+                @apply bg-gradient-to-r from-[#40414f] to-[#343541];
             }
 
             .tool-content {
-                @apply w-full px-4 py-3 text-xs font-mono rounded-b-xl transition-colors duration-200 border-t;
+                @apply w-full px-4 py-3 text-xs font-mono transition-all duration-300 border-t;
             }
 
             .tool-content.light {
-                @apply bg-white border-gray-200 text-gray-800;
+                @apply bg-white/80 border-gray-200 text-gray-800;
             }
 
             .tool-content.dark {
-                @apply bg-[#2a2b32] border-[#40414f] text-gray-300;
+                @apply bg-[#2a2b32]/80 border-[#40414f] text-gray-300;
+            }
+
+            /* 工具狀態動畫 */
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+
+            @keyframes pulse-subtle {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.6; }
+            }
+
+            @keyframes shake {
+                0%, 100% { transform: translateX(0); }
+                10%, 30%, 50%, 70%, 90% { transform: translateX(-2px); }
+                20%, 40%, 60%, 80% { transform: translateX(2px); }
+            }
+
+            @keyframes scale-in {
+                0% { transform: scale(0.8); opacity: 0; }
+                50% { transform: scale(1.05); }
+                100% { transform: scale(1); opacity: 1; }
+            }
+
+            .animate-spin-slow {
+                animation: spin 1.5s linear infinite;
+            }
+
+            .animate-pulse-subtle {
+                animation: pulse-subtle 2s ease-in-out infinite;
+            }
+
+            .animate-shake {
+                animation: shake 0.5s ease-in-out;
+            }
+
+            .animate-scale-in {
+                animation: scale-in 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            }
+
+            /* 工具展開/收起動畫 */
+            @keyframes expand {
+                from {
+                    opacity: 0;
+                    max-height: 0;
+                    transform: translateY(-10px);
+                }
+                to {
+                    opacity: 1;
+                    max-height: 1000px;
+                    transform: translateY(0);
+                }
+            }
+
+            @keyframes collapse {
+                from {
+                    opacity: 1;
+                    max-height: 1000px;
+                    transform: translateY(0);
+                }
+                to {
+                    opacity: 0;
+                    max-height: 0;
+                    transform: translateY(-10px);
+                }
+            }
+
+            .tool-expand-enter {
+                animation: expand 0.3s ease-out forwards;
+            }
+
+            .tool-expand-leave {
+                animation: collapse 0.3s ease-in forwards;
             }
 
             /* 輸入框樣式 - ChatGPT 白底柔和陰影 */

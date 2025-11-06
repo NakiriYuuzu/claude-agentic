@@ -351,7 +351,7 @@ export const createSettingsRoutes = (db: DatabaseService) => new Elysia({ prefix
                 })
             } else if (platform === 'win32') {
                 // Windows - 使用 PowerShell
-                folderPath = await new Promise((resolve, reject) => {
+                folderPath = await new Promise((resolve, _reject) => {
                     const script = `
                         Add-Type -AssemblyName System.Windows.Forms
                         $folderBrowser = New-Object System.Windows.Forms.FolderBrowserDialog
