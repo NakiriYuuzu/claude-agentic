@@ -13,7 +13,7 @@ import { createSettingsRoutes } from './routes/settings.routes'
 import { createQueryRoutes } from './routes/query.routes'
 import { createWebSocketRoutes } from './routes/websocket.routes'
 import { createSessionRoutes } from './routes/session.routes'
-import { createLoggerConfig, fileLoggerPath } from './config/logger.config'
+import { createLoggerConfig, createFileLoggerConfig, fileLoggerPath } from './config/logger.config'
 import { logger } from './utils/logger'
 import { randomUUID } from 'crypto'
 import { SessionQueueService } from './services/session-queue.service'
@@ -67,6 +67,7 @@ const app = new Elysia()
     // Logger Middleware (先載入所有 plugins)
     .use(
         elysiaFileLogger({
+            ...createFileLoggerConfig(),
             file: fileLoggerPath(),
             autoLogging: {
                 ignore: (ctx) => ctx.path === '/api/health' // 忽略健康檢查
@@ -94,7 +95,7 @@ const app = new Elysia()
     // 靜態檔案服務
     .use(staticPlugin({
         assets: 'public',
-        prefix: '/'
+        prefix: ''
     }))
 
     // Swagger UI

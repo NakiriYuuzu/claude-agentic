@@ -9,34 +9,30 @@ import { existsSync, mkdirSync } from 'fs'
 import { dirname, resolve } from 'path'
 
 export const fileLoggerPath = (): string => {
-    const isDev = process.env.NODE_ENV !== 'production'
-    const logFilePath = process.env.LOG_FILE_PATH || `./data/logs/app-${new Date().toISOString()}.log`
+    // Windows 檔案系統不允許檔名中包含 : 字符，所以替換為 -
+    const timestamp = new Date().toISOString().replace(/:/g, '-')
+    const logFilePath = process.env.LOG_FILE_PATH || `./data/logs/app-${timestamp}.log`
 
-    if (isDev) {
-        // 解析並取得目錄路徑
-        const absolutePath = resolve(logFilePath)
-        const dirPath = dirname(absolutePath)
+    // 確保日誌目錄存在（跨平台兼容，所有環境都建立）
+    const absolutePath = resolve(logFilePath)
+    const dirPath = dirname(absolutePath)
 
-        // 檢查目錄是否存在，不存在則建立
-        if (!existsSync(dirPath)) {
-            mkdirSync(dirPath, { recursive: true })
-        }
+    if (!existsSync(dirPath)) {
+        mkdirSync(dirPath, { recursive: true })
     }
 
     return logFilePath
 }
 
 /**
- * 建立 Logger 配置
+ * 建立基礎 Logger 配置（不含 transport）
  * @returns Pino Logger Options
  */
-export const createLoggerConfig = (): LoggerOptions => {
+const createBaseLoggerConfig = (): LoggerOptions => {
     const isDev = process.env.NODE_ENV !== 'production'
     const logLevel = process.env.LOG_LEVEL || (isDev ? 'debug' : 'info')
-    const usePretty = process.env.LOG_PRETTY === 'true' && isDev
 
-    // 基礎配置
-    const baseConfig: LoggerOptions = {
+    return {
         level: logLevel,
         // 自訂時間戳格式
         timestamp: () => `,"time":"${new Date().toISOString()}"`,
@@ -51,6 +47,16 @@ export const createLoggerConfig = (): LoggerOptions => {
             })
         }
     }
+}
+
+/**
+ * 建立 Logger 配置（Console 輸出，開發環境使用 pino-pretty）
+ * @returns Pino Logger Options
+ */
+export const createLoggerConfig = (): LoggerOptions => {
+    const isDev = process.env.NODE_ENV !== 'production'
+    const usePretty = process.env.LOG_PRETTY === 'true' && isDev
+    const baseConfig = createBaseLoggerConfig()
 
     // 開發環境使用 pino-pretty
     if (usePretty) {
@@ -70,6 +76,14 @@ export const createLoggerConfig = (): LoggerOptions => {
 
     // 生產環境使用 JSON 格式（預設）
     return baseConfig
+}
+
+/**
+ * 建立檔案 Logger 配置（不使用 transport，純 JSON 輸出）
+ * @returns Pino Logger Options
+ */
+export const createFileLoggerConfig = (): LoggerOptions => {
+    return createBaseLoggerConfig()
 }
 
 /**

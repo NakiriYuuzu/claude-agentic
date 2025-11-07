@@ -44,3 +44,6 @@ coverage/
 # Temporary
 tmp/
 temp/
+
+.claude
+.logs

@@ -7,12 +7,23 @@ import { Database } from 'bun:sqlite'
 import type { WorkspaceSettings, WorkspaceSettingsRow, WorkspaceListItem } from '../types/settings.types'
 import { logger } from '../utils/logger'
 import { SessionService } from './session.service'
+import { existsSync, mkdirSync } from 'fs'
+import { dirname, resolve } from 'path'
 
 export class DatabaseService {
     private db: Database
     private _sessionService: SessionService | null = null
 
     constructor(dbPath: string = './data/settings.db') {
+        // 確保資料庫目錄存在（跨平台兼容）
+        const absolutePath = resolve(dbPath)
+        const dirPath = dirname(absolutePath)
+
+        if (!existsSync(dirPath)) {
+            mkdirSync(dirPath, { recursive: true })
+            logger.debug({ event: 'db_dir_created', path: dirPath }, 'Database directory created')
+        }
+
         this.db = new Database(dbPath, { create: true })
         logger.info({ event: 'db_connecting', path: dbPath }, 'Connecting to database')
 
