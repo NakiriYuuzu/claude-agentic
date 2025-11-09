@@ -12,9 +12,6 @@
         "forceConsistentCasingInFileNames": true,
         "resolveJsonModule": true,
 
-        "outDir": "./dist",
-        "rootDir": "./src",
-
         "allowSyntheticDefaultImports": true,
         "isolatedModules": true,
 
@@ -22,14 +19,22 @@
         "strictNullChecks": true,
         "strictFunctionTypes": true,
         "noUnusedLocals": true,
-        "noUnusedParameters": true
+        "noUnusedParameters": true,
+
+        "declaration": true,
+        "declarationMap": true,
+        "sourceMap": true,
+
+        "paths": {
+            "@workspace/shared": ["./packages/shared/src/index.ts"],
+            "@workspace/shared/*": ["./packages/shared/src/*"]
+        }
     },
-    "include": [
-        "src/**/*"
-    ],
     "exclude": [
         "node_modules",
-        "dist",
-        "data"
+        "**/dist",
+        "**/node_modules",
+        "data",
+        ".claude"
     ]
 }

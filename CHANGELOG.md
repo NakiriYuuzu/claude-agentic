@@ -6,6 +6,128 @@
 
 ---
 
+## [0.5.0] - 2025-11-09
+
+### 🏗️ 重大架構變更：Monorepo 重構
+
+**本版本將專案重構為 Bun Workspace Monorepo 架構**
+
+#### 📦 新的 Package 結構
+
+專案現在分為三個獨立的 packages：
+
+1. **@workspace/shared** - 共享程式碼
+   - TypeScript 型別定義（types/）
+   - TypeBox 驗證 Schema（schemas/）
+   - 編譯為獨立的 npm package
+
+2. **@workspace/backend** - 後端服務
+   - Elysia.js API 服務
+   - Claude Agent SDK 整合
+   - SQLite 資料庫管理
+   - 依賴 @workspace/shared
+
+3. **@workspace/frontend** - 前端應用
+   - Vue.js 3 SPA
+   - CDN 依賴（無 npm 依賴）
+   - 由 backend 靜態服務提供
+
+#### 🔧 技術變更
+
+**構建系統**：
+- 新增 Bun workspace 配置（`bunfig.toml`）
+- 更新根目錄 `package.json` 支援 workspaces
+- 各 package 獨立的 `tsconfig.json`
+- 新增構建腳本：`build:shared`、`build:backend`
+
+**Import 路徑**：
+- 統一使用 `@workspace/shared` 引入共享型別
+- 從 `import { Type } from 'elysia'` 改為 `import { Type as t } from '@sinclair/typebox'`
+- 移除 shared 對 backend 框架的依賴
+
+**靜態檔案**：
+- 前端檔案遷移至 `packages/frontend/public/`
+- Backend 靜態服務路徑更新為 `../frontend/public`
+
+#### 📁 目錄結構變更
+
+```
+之前：
+claude-agentic/
+├── src/                 # 所有後端程式碼
+├── public/              # 前端程式碼
+└── data/                # 資料目錄
+
+之後：
+claude-agentic/
+├── packages/
+│   ├── shared/          # 共享程式碼（新增）
+│   ├── backend/         # 後端（從 src/ 遷移）
+│   └── frontend/        # 前端（從 public/ 遷移）
+├── data/                # 資料目錄（保持根目錄）
+└── .claude/             # SDK 資料（保持根目錄）
+```
+
+#### ✨ 優勢
+
+- **更清晰的關注點分離**：前後端和共享程式碼完全獨立
+- **可重用性**：shared package 可被其他專案引用
+- **更好的型別安全**：TypeScript 跨 package 引用
+- **獨立版本管理**：各 package 可獨立發布（未來）
+- **並行開發**：團隊可同時開發不同 packages
+
+#### 🔄 向後相容性
+
+- **API 端點**：完全相容，無變更
+- **環境變數**：完全相容，無變更
+- **資料庫**：完全相容，位置不變（根目錄 `data/`）
+- **SDK 資料**：完全相容，位置不變（根目錄 `.claude/`）
+
+#### 📝 修改的檔案
+
+**根目錄配置**：
+- `package.json` - 改為 workspace 配置
+- `bunfig.toml` - 新增 Bun workspace 配置
+- `tsconfig.json` - 更新 paths 映射
+
+**Backend 服務**：
+- 所有 `src/` 檔案遷移至 `packages/backend/src/`
+- Import 路徑更新（7+ 檔案）
+- 靜態檔案路徑更新
+
+**Shared Package**：
+- `src/types/` → `packages/shared/src/types/`
+- `src/schemas/` → `packages/shared/src/schemas/`
+- Schema 從 Elysia 改為純 TypeBox
+
+**Frontend**：
+- `public/` → `packages/frontend/public/`
+- 新增 `packages/frontend/README.md`
+
+#### 📚 文件更新
+
+- `README.md` - 新增 Monorepo 架構說明
+- `packages/frontend/README.md` - 新增前端文件
+- `CHANGELOG.md` - 本版本變更記錄
+
+#### ⚠️ 已知問題
+
+- TypeScript 型別錯誤需要修復（下個版本）
+- 測試需要更新路徑
+
+#### 🚀 遷移指南
+
+**從 0.4.x 升級到 0.5.0**：
+
+1. 拉取最新程式碼
+2. 重新安裝依賴：`bun install`
+3. 構建 packages：`bun run build`
+4. 啟動服務：`bun run dev`
+
+**注意**：如果你有自定義修改，請查看新的目錄結構並相應調整。
+
+---
+
 ## [0.2.1] - 2025-11-03
 
 ### 🔧 重構

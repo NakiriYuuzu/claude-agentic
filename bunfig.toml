@@ -1,0 +1,7 @@
+[install]
+# 啟用 workspace 支持
+auto-install = true
+
+[install.scopes]
+# 本地 workspace packages 使用 link 協議
+"@workspace" = "link:"
