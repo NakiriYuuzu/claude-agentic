@@ -1,6 +1,0 @@
-{
-    "name": "@workspace/frontend",
-    "version": "0.5.0",
-    "description": "Frontend Vue.js 3 SPA (CDN-based, no npm dependencies)",
-    "private": true
-}
