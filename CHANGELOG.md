@@ -6,6 +6,65 @@
 
 ---
 
+## [0.5.1] - 2025-11-10
+
+### ✨ 重大功能：完成前端 Vue 3 現代化遷移
+
+**將 old-web 的所有功能遷移到 frontend (Vue 3 + TypeScript + shadcn-vue)**
+
+#### 📦 新增 Shared Package 類型定義
+- `frontend.types.ts`: DisplayMessage, ToolExecution, QueryResult, WSMessage
+- `tool-parser.ts`: 工具解析工具函數（parseToolBlocks, extractTextContent）
+- `toolIcons.ts`: 工具圖示映射（支援 10+ 工具類型）
+- `dateUtils.ts`: 日期格式化工具（相對時間、標準格式、時長轉換）
+
+#### 🎨 完善 UI 組件
+- **ChatToolPanel.vue**: 工具結果詳細展示、JSON 格式化、工具圖示整合
+- **WorkspaceEditDialog.vue**: 新增工作空間編輯對話框（完整 CRUD 功能）
+- **SessionStatsDialog.vue**: 補完統計資訊展示（8 個統計卡片 + Top 10 工具使用率）
+- **ChatSidebar.vue**: 連接 session 載入功能，點擊歷史記錄恢復對話
+
+#### 🔧 完善 Pinia Stores
+- **session.ts**: 實現 `loadMessages()` 方法，支援歷史訊息載入與轉換
+- **message.ts**: 訊息合併邏輯、工具解析整合
+- **websocket.ts**: 完整 WebSocket 連接管理
+- **workspace.ts**: CRUD 操作、資料夾選擇
+- **settings.ts**: Dark Mode、查詢參數管理
+
+#### 📡 API 服務層
+- **api.ts**: 統一的 API 客戶端（WebSocketService + ApiService）
+- **websocket.service.ts**: WebSocket 連接管理、自動重連機制
+
+#### 🐛 修復
+- 修復 `@workspace/shared` 依賴問題，添加到 frontend package.json
+- 修復類型導入錯誤
+
+#### 📝 技術細節
+- 完全使用 TypeScript + Vue 3 Composition API
+- 整合 shadcn-vue UI 組件庫（shadcn 現代化風格）
+- 四個空格縮排、不使用 semicolon
+- 所有組件支援 Dark Mode
+- 完整的類型定義和錯誤處理
+
+#### 🗂️ 檔案結構
+```
+packages/frontend/
+├── src/
+│   ├── components/       # 13 個 Vue 組件
+│   ├── lib/             # 工具函數（toolIcons, dateUtils）
+│   ├── services/        # API 服務層
+│   ├── stores/          # 5 個 Pinia stores
+│   └── types/           # TypeScript 類型定義
+└── package.json         # 新增 @workspace/shared 依賴
+```
+
+#### 🚀 下一步
+- 完成功能測試
+- 刪除 packages/old-web
+- 代碼格式化與優化
+
+---
+
 ## [0.5.0] - 2025-11-09
 
 ### 🏗️ 重大架構變更：Monorepo 重構

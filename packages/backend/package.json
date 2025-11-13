@@ -1,33 +1,33 @@
 {
-    "name": "@workspace/backend",
-    "version": "0.5.0",
-    "type": "module",
-    "description": "Backend API service with Elysia.js and Claude SDK",
-    "main": "./dist/index.js",
-    "scripts": {
-        "build": "tsc && tsc-alias",
-        "dev": "bun run --watch src/index.ts",
-        "start": "bun run dist/index.js",
-        "test": "bun test"
-    },
-    "dependencies": {
-        "@workspace/shared": "workspace:*",
-        "@anthropic-ai/claude-agent-sdk": "latest",
-        "@bogeychan/elysia-logger": "^0.1.10",
-        "@elysiajs/cors": "latest",
-        "@elysiajs/html": "^1.4.0",
-        "@elysiajs/static": "^1.4.6",
-        "@elysiajs/swagger": "latest",
-        "@sinclair/typebox": "latest",
-        "elysia": "latest",
-        "pino": "^10.1.0",
-        "pino-pretty": "^13.1.2",
-        "pino-roll": "^4.0.0"
-    },
-    "devDependencies": {
-        "@types/bun": "latest",
-        "bun-types": "latest",
-        "tsc-alias": "latest",
-        "typescript": "latest"
-    }
+  "name": "@workspace/backend",
+  "version": "0.5.0",
+  "type": "module",
+  "description": "Backend API service with Elysia.js and Claude SDK",
+  "main": "./dist/index.js",
+  "scripts": {
+    "dev": "bun --env-file=../../.env --watch src/index.ts",
+    "build": "tsc && tsc-alias",
+    "start": "bun dist/index.js",
+    "test": "bun test"
+  },
+  "dependencies": {
+    "@workspace/shared": "workspace:*",
+    "@anthropic-ai/claude-agent-sdk": "latest",
+    "@bogeychan/elysia-logger": "^0.1.10",
+    "@elysiajs/cors": "latest",
+    "@elysiajs/html": "^1.4.0",
+    "@elysiajs/static": "^1.4.6",
+    "@elysiajs/swagger": "latest",
+    "@sinclair/typebox": "latest",
+    "elysia": "latest",
+    "pino": "^10.1.0",
+    "pino-pretty": "^13.1.2",
+    "pino-roll": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "bun-types": "latest",
+    "tsc-alias": "latest",
+    "typescript": "latest"
+  }
 }

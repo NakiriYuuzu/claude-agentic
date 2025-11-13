@@ -8,11 +8,11 @@
         "packages/*"
     ],
     "scripts": {
-        "build": "bun run build:shared && bun run build:backend",
-        "build:shared": "cd packages/shared && bun run build",
-        "build:backend": "cd packages/backend && bun run build",
-        "dev": "bun run build:shared && cd packages/backend && bun run dev",
-        "start": "cd packages/backend && bun run start",
+        "dev": "bun --filter '*' dev",
+        "build": "bun --filter @workspace/shared build && bun --filter @workspace/backend build",
+        "build:shared": "bun --filter @workspace/shared build",
+        "build:backend": "bun --filter @workspace/backend build",
+        "start": "bun --filter @workspace/backend start",
         "test": "bun test",
         "clean": "rm -rf packages/*/dist packages/*/node_modules node_modules"
     },

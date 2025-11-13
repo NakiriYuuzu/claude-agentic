@@ -4,6 +4,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ---
 
+## Project Rules
+
+1. 使用 MCP 工具和 WebSearch：遇到不熟悉的 shadcn-vue 組件或 Monaco Editor 使用方式時，使用 MCP context7 查詢文檔
+2. 遇到不確定就問：任何設計或實現上的疑問，立即詢問確認
+3. 保持現有 UI 不變：Sidebar 的雙欄結構、顏色、布局不變
+4. 測試每個 Phase：完成一個 Phase 後測試，確保功能正常再繼續
+
+---
+
 ## Project Overview
 
 **Claude Agent SDK + Elysia.js API Platform**

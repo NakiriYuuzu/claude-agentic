@@ -18,6 +18,14 @@ import { logger } from './utils/logger'
 import { randomUUID } from 'crypto'
 import { SessionQueueService } from './services/session-queue.service'
 import { SessionRecorder } from './services/session-recorder'
+import { join, dirname } from 'path'
+import { fileURLToPath } from 'url'
+
+// 計算專案根目錄（從 packages/backend/src/index.ts 往上三層）
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
+const projectRoot = join(__dirname, '../../..')
+const frontendPublicPath = join(projectRoot, 'packages/frontend/public')
 
 // 從環境變數讀取設定
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000
@@ -94,7 +102,7 @@ const app = new Elysia()
 
     // 靜態檔案服務（從 frontend package 提供）
     .use(staticPlugin({
-        assets: '../frontend/public',
+        assets: frontendPublicPath,
         prefix: ''
     }))
 
@@ -129,25 +137,25 @@ logger.info(
         event: 'app_start',
         port: PORT,
         hostname: app.server?.hostname,
-        env: process.env.NODE_ENV || 'development'
+        env: process.env.NODE_ENV || 'development',
+        frontendPath: frontendPublicPath
     },
     `🦊 Elysia server is running!\n\n` +
     `🌐 API Server: http://${app.server?.hostname}:${PORT}\n` +
     `📚 Swagger UI: http://${app.server?.hostname}:${PORT}/swagger\n` +
     `🔌 WebSocket: ws://${app.server?.hostname}:${PORT}/api/ws\n` +
-    `📊 Health Check: http://${app.server?.hostname}:${PORT}/api/health\n\n` +
+    `📊 Health Check: http://${app.server?.hostname}:${PORT}/api/health\n` +
+    `📁 Frontend: ${frontendPublicPath}\n\n` +
     `Press Ctrl+C to stop`
 )
 
-// 優雅關閉
-process.on('SIGINT', async () => {
-    logger.info({ event: 'app_shutdown', reason: 'SIGINT' }, '\n\n👋 Shutting down gracefully...')
+// 優雅關閉處理函數
+async function gracefulShutdown(reason: string) {
+    logger.info({ event: 'app_shutdown', reason }, '\n\n👋 Shutting down gracefully...')
 
-    // Clear cleanup job
     clearInterval(cleanupJob)
     logger.info({ event: 'cleanup_job_cleared' }, '✅ Cleanup job stopped')
 
-    // Flush session queue before closing
     logger.info({ event: 'session_queue_flushing' }, '📝 Flushing session queue...')
     await sessionRecorder.flush()
     logger.info({ event: 'session_queue_flushed' }, '✅ Session queue flushed')
@@ -155,48 +163,27 @@ process.on('SIGINT', async () => {
     settingsService.close()
     logger.info({ event: 'db_closed' }, '✅ Database closed')
     process.exit(0)
-})
+}
 
-process.on('SIGTERM', async () => {
-    logger.info({ event: 'app_shutdown', reason: 'SIGTERM' }, '\n\n👋 Shutting down gracefully...')
+// 錯誤處理函數
+function handleError(event: string, error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error)
+    const errorStack = error instanceof Error ? error.stack : undefined
 
-    // Clear cleanup job
-    clearInterval(cleanupJob)
-    logger.info({ event: 'cleanup_job_cleared' }, '✅ Cleanup job stopped')
-
-    // Flush session queue before closing
-    logger.info({ event: 'session_queue_flushing' }, '📝 Flushing session queue...')
-    await sessionRecorder.flush()
-    logger.info({ event: 'session_queue_flushed' }, '✅ Session queue flushed')
-
-    settingsService.close()
-    logger.info({ event: 'db_closed' }, '✅ Database closed')
-    process.exit(0)
-})
-
-// 錯誤處理
-process.on('uncaughtException', (error) => {
     logger.error(
         {
-            event: 'uncaught_exception',
-            error: error.message,
-            stack: error.stack
+            event,
+            error: errorMessage,
+            stack: errorStack
         },
-        '❌ Uncaught Exception'
+        `❌ ${event === 'uncaught_exception' ? 'Uncaught Exception' : 'Unhandled Rejection'}`
     )
     settingsService.close()
     process.exit(1)
-})
+}
 
-process.on('unhandledRejection', (reason, promise) => {
-    logger.error(
-        {
-            event: 'unhandled_rejection',
-            reason: String(reason),
-            promise: String(promise)
-        },
-        '❌ Unhandled Rejection'
-    )
-    settingsService.close()
-    process.exit(1)
-})
+// 註冊事件處理器
+process.on('SIGINT', () => gracefulShutdown('SIGINT'))
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'))
+process.on('uncaughtException', (error) => handleError('uncaught_exception', error))
+process.on('unhandledRejection', (reason) => handleError('unhandled_rejection', reason))

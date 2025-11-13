@@ -68,7 +68,7 @@ const browseAndCreate = async () => {
             v-for="workspace in workspaces"
             :key="workspace.workspacePath"
             @click="selectWorkspace(workspace)"
-            class="cursor-pointer transition-all hover:shadow-md"
+            class="cursor-pointer transition-all hover:shadow-md py-0"
             :class="{ 'ring-2 ring-[#10A37F]': workspace.workspacePath === currentPath }"
           >
             <CardContent class="p-4 flex items-center justify-between">
