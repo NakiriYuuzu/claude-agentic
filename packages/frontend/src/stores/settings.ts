@@ -3,15 +3,14 @@
  *
  * 管理應用程式設定，包括：
  * - 查詢選項（model, permissionMode, maxTurns）
- * - UI 設定（showSidebar）
  * - 快速提示（quickPrompts）
  *
- * Dark Mode 使用 VueUse 的 useDark/useToggle 獨立管理
+ * Color Mode 使用 VueUse 的 useColorMode 獨立管理（shadcn-vue 官方推薦）
  */
 
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { useDark, useToggle } from '@vueuse/core'
+import { useColorMode } from '@vueuse/core'
 import type { QueryOptions } from '@/types/api'
 
 /**
@@ -62,12 +61,6 @@ export const useSettingsStore = defineStore(
      * @default undefined
      */
     const resume = ref<string | undefined>(undefined)
-
-    /**
-     * 是否顯示側邊欄
-     * @default true（桌面版）
-     */
-    const showSidebar = ref<boolean>(true)
 
     /**
      * 快速提示範本列表
@@ -130,19 +123,6 @@ export const useSettingsStore = defineStore(
       if (options.resume !== undefined) {
         resume.value = options.resume
       }
-    }
-
-    /**
-     * 切換側邊欄顯示狀態
-     *
-     * @example
-     * ```typescript
-     * settingsStore.toggleSidebar() // true → false
-     * settingsStore.toggleSidebar() // false → true
-     * ```
-     */
-    function toggleSidebar(): void {
-      showSidebar.value = !showSidebar.value
     }
 
     /**
@@ -215,7 +195,6 @@ export const useSettingsStore = defineStore(
       permissionMode,
       maxTurns,
       resume,
-      showSidebar,
       quickPrompts,
 
       // Getters
@@ -223,7 +202,6 @@ export const useSettingsStore = defineStore(
 
       // Actions
       updateQueryOptions,
-      toggleSidebar,
       addQuickPrompt,
       removeQuickPrompt,
       setResume,
@@ -242,32 +220,22 @@ export const useSettingsStore = defineStore(
 )
 
 /**
- * Dark Mode 狀態管理（使用 VueUse）
+ * Color Mode 狀態管理（使用 VueUse）
  *
  * @remarks
- * 不使用 Pinia，直接使用 VueUse 的 useDark/useToggle
+ * 使用 VueUse 的 useColorMode（shadcn-vue 官方推薦）
  * - 自動同步 localStorage（key: 'vueuse-color-scheme'）
  * - 自動切換 HTML class（dark）
- * - 支援系統偏好自動偵測
+ * - 支援三種模式：'light', 'dark', 'auto'（跟隨系統）
  *
  * @example
  * ```typescript
- * import { isDark, toggleDark } from '@/stores/settings'
+ * import { colorMode } from '@/stores/settings'
  *
- * console.log(isDark.value) // true/false
- * toggleDark() // 切換 Dark Mode
+ * console.log(colorMode.value) // 'light' | 'dark' | 'auto'
+ * colorMode.value = 'dark' // 切換到 dark mode
  * ```
  */
-export const isDark = useDark()
-
-/**
- * 切換 Dark Mode
- *
- * @example
- * ```typescript
- * toggleDark() // 切換到相反狀態
- * toggleDark(true) // 強制開啟
- * toggleDark(false) // 強制關閉
- * ```
- */
-export const toggleDark = useToggle(isDark)
+export const colorMode = useColorMode({
+  initialValue: 'light'
+})

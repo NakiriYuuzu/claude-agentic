@@ -293,21 +293,26 @@ export const useWebSocketStore = defineStore('websocket', () => {
     // 顯示查詢完成通知
     toast.success('查詢完成', '已收到回應')
 
-    // 動態引入 Message Store
-    import('./message')
-      .then(({ useMessageStore }) => {
+    // 動態引入 Message Store 和 Settings Store
+    Promise.all([
+      import('./message'),
+      import('./settings')
+    ])
+      .then(([{ useMessageStore }, { useSettingsStore }]) => {
         const messageStore = useMessageStore()
+        const settingsStore = useSettingsStore()
 
         // 標記助手訊息完成（已在 handleMessage 處理 result 時完成）
         // 這裡不需要再次調用 markAssistantComplete
 
-        // 如果有 session ID，更新當前 session
+        // 如果有 session ID，更新當前 session 並設置 resume 參數
         if (response.sessionId) {
           messageStore.setSessionId(response.sessionId)
+          settingsStore.setResume(response.sessionId)
         }
       })
       .catch((error) => {
-        console.error('[WebSocketStore] Failed to import message store:', error)
+        console.error('[WebSocketStore] Failed to import stores:', error)
       })
   }
 

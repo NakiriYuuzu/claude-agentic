@@ -116,20 +116,6 @@ const removeQuickPrompt = (index: number) => {
           </p>
         </div>
 
-        <!-- Sidebar Toggle -->
-        <div class="flex items-center justify-between">
-          <div class="space-y-0.5">
-            <Label>顯示側邊欄</Label>
-            <p class="text-xs text-gray-500">
-              切換側邊欄的顯示狀態
-            </p>
-          </div>
-          <Switch
-            :checked="settingsStore.showSidebar"
-            @update:checked="settingsStore.toggleSidebar"
-          />
-        </div>
-
         <!-- Quick Prompts -->
         <div class="space-y-3">
           <Label>快捷提示</Label>

@@ -1,16 +1,25 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 import { useWebSocketStore } from '@/stores/websocket'
 import { useWorkspaceStore } from '@/stores/workspace'
 import { useSessionStore } from '@/stores/session'
-import { isDark, toggleDark } from '@/stores/settings'
+import { colorMode } from '@/stores/settings'
 import { Moon, Sun, Wifi, WifiOff, Folder, MessageSquare } from 'lucide-vue-next'
 
 const wsStore = useWebSocketStore()
 const workspaceStore = useWorkspaceStore()
 const sessionStore = useSessionStore()
+
+// Computed property for dark mode state
+const isDark = computed(() => colorMode.value === 'dark')
+
+// Toggle function
+const toggleColorMode = () => {
+  colorMode.value = colorMode.value === 'dark' ? 'light' : 'dark'
+}
 </script>
 
 <template>
@@ -51,7 +60,7 @@ const sessionStore = useSessionStore()
       </Badge>
 
       <!-- Dark mode toggle -->
-      <Button variant="ghost" size="icon" @click="toggleDark">
+      <Button variant="ghost" size="icon" @click="toggleColorMode">
         <Moon v-if="!isDark" class="w-4 h-4" />
         <Sun v-else class="w-4 h-4" />
       </Button>

@@ -14,7 +14,7 @@ import { useMessageStore } from '@/stores/message'
 import { useWebSocketStore } from '@/stores/websocket'
 import { useSettingsStore } from '@/stores/settings'
 import { useSessionStore } from '@/stores/session'
-import { isDark } from '@/stores/settings'
+import { colorMode } from '@/stores/settings'
 import 'vue-sonner/style.css'
 
 // Stores
@@ -34,7 +34,6 @@ const editingWorkspace = ref<WorkspaceListItem | null>(null)
 
 // Computed
 const hasMessages = computed(() => messageStore.messages.length > 0)
-const showSidebar = computed(() => settingsStore.showSidebar)
 const lastUserMessage = computed(() => {
     const userMessages = messageStore.messages.filter(m => m.type === 'user')
     return userMessages[userMessages.length - 1]?.text || ''
@@ -95,7 +94,7 @@ onMounted(async () => {
 <template>
     <div class="bg-background text-foreground">
         <SidebarProvider
-            :default-open="showSidebar"
+            :default-open="true"
             :style="{
         '--sidebar-width': '450px',
       }"
@@ -186,7 +185,7 @@ onMounted(async () => {
 
             <!-- Toast Notifications -->
             <Toaster
-                :theme="isDark ? 'dark' : 'light'"
+                :theme="colorMode === 'dark' ? 'dark' : 'light'"
                 position="bottom-right"
                 :rich-colors="true"
             />

@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { useWorkspaceStore } from '@/stores/workspace'
-import { isDark } from '@/stores/settings'
 import { Folder, FolderPlus, Check } from 'lucide-vue-next'
 import { computed } from 'vue'
 import type { WorkspaceListItem } from '@workspace/shared'
