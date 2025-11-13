@@ -1,0 +1,29 @@
+{
+    "extends": "../../tsconfig.json",
+    "compilerOptions": {
+        "outDir": "./dist",
+        "rootDir": "./src",
+        "baseUrl": ".",
+        "paths": {
+            "@workspace/shared": ["../shared/src/index.ts"],
+            "@workspace/shared/*": ["../shared/src/*"]
+        },
+        // 臨時放寬以下限制，直到 Elysia 型別定義完善
+        "noUnusedLocals": false,
+        "noUnusedParameters": false,
+        "strictPropertyInitialization": false
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+        "tests"
+    ],
+    "references": [
+        {
+            "path": "../shared"
+        }
+    ]
+}

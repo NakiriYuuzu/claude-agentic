@@ -1,0 +1,27 @@
+{
+    "name": "@workspace/shared",
+    "version": "0.5.0",
+    "type": "module",
+    "description": "Shared types, schemas, and utilities",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "exports": {
+        ".": "./dist/index.js",
+        "./types/*": "./dist/types/*.js",
+        "./schemas/*": "./dist/schemas/*.js",
+        "./utils/*": "./dist/utils/*.js"
+    },
+    "scripts": {
+        "build": "tsc && tsc-alias",
+        "watch": "tsc --watch"
+    },
+    "dependencies": {
+        "@sinclair/typebox": "latest"
+    },
+    "devDependencies": {
+        "@types/bun": "latest",
+        "bun-types": "latest",
+        "tsc-alias": "latest",
+        "typescript": "latest"
+    }
+}

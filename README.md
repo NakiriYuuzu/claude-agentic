@@ -25,6 +25,64 @@
 - **AI SDK**：Claude Agent SDK
 - **驗證**：TypeBox (Elysia 內建)
 - **文件**：Swagger UI
+- **前端**：Vue.js 3 + Tailwind CSS + VueUse（CDN）
+
+## 🏗️ Monorepo 架構
+
+本專案採用 **Bun Workspace Monorepo** 架構，分為三個獨立的 packages：
+
+```
+claude-agentic/
+├── packages/
+│   ├── shared/              # 共享程式碼
+│   │   ├── src/
+│   │   │   ├── types/      # TypeScript 型別定義
+│   │   │   └── schemas/    # TypeBox 驗證 Schema
+│   │   └── dist/           # 編譯輸出
+│   │
+│   ├── backend/             # 後端服務
+│   │   ├── src/
+│   │   │   ├── config/     # 設定檔
+│   │   │   ├── routes/     # API 路由
+│   │   │   ├── services/   # 業務邏輯
+│   │   │   └── index.ts    # 應用入口
+│   │   └── dist/           # 編譯輸出
+│   │
+│   └── frontend/            # 前端應用
+│       └── public/          # Vue.js 3 SPA
+│
+├── data/                    # 資料目錄（gitignored）
+├── .claude/                 # Claude SDK 資料（gitignored）
+├── package.json             # 根配置 + workspaces
+└── bunfig.toml              # Bun workspace 配置
+```
+
+### Packages 說明
+
+#### 📦 `@workspace/shared`
+- **用途**：共享型別定義和驗證 Schema
+- **依賴**：TypeBox
+- **特點**：編譯為 JavaScript + TypeScript 宣告檔案
+
+#### 🚀 `@workspace/backend`
+- **用途**：Elysia.js API 服務
+- **依賴**：shared + Elysia.js + Claude SDK + SQLite
+- **特點**：依賴 shared package，提供 REST API 和 WebSocket
+
+#### 🎨 `@workspace/frontend`
+- **用途**：Vue.js 3 前端應用
+- **依賴**：無（完全基於 CDN）
+- **特點**：由 backend 的靜態服務提供
+
+### 構建順序
+
+由於 backend 依賴 shared，構建時必須先編譯 shared：
+
+```bash
+bun run build        # 自動按順序構建：shared → backend
+bun run build:shared # 僅構建 shared
+bun run build:backend # 僅構建 backend（需先構建 shared）
+```
 
 ## 🚀 快速開始
 

@@ -1,35 +1,62 @@
 {
     "compilerOptions": {
+        // 編譯目標為最新的 ECMAScript 標準
         "target": "ESNext",
+        // 模組系統使用 ESNext
         "module": "ESNext",
+        // 使用 bundler 模式解析模組
         "moduleResolution": "bundler",
+        // 引入 ESNext 標準庫
         "lib": ["ESNext"],
+        // 引入 Bun 類型定義
         "types": ["bun-types"],
 
+        // 啟用所有嚴格類型檢查選項
         "strict": true,
+        // 允許使用 ES 模組與 CommonJS 模組互操作
         "esModuleInterop": true,
+        // 跳過所有聲明文件的類型檢查
         "skipLibCheck": true,
+        // 強制文件名大小寫一致
         "forceConsistentCasingInFileNames": true,
+        // 允許導入 JSON 模組
         "resolveJsonModule": true,
 
-        "outDir": "./dist",
-        "rootDir": "./src",
-
+        // 允許合成默認導入
         "allowSyntheticDefaultImports": true,
+        // 每個文件作為單獨的模組處理
         "isolatedModules": true,
 
+        // 不允許隱式的 any 類型
         "noImplicitAny": true,
+        // 啟用嚴格的 null 檢查
         "strictNullChecks": true,
+        // 啟用嚴格的函數類型檢查
         "strictFunctionTypes": true,
+        // 報告未使用的局部變量
         "noUnusedLocals": true,
-        "noUnusedParameters": true
+        // 報告未使用的參數
+        "noUnusedParameters": true,
+
+        // 生成聲明文件 (.d.ts)
+        "declaration": true,
+        // 生成聲明文件的 source map
+        "declarationMap": true,
+        // 生成 source map 文件
+        "sourceMap": true,
+
+        // 路徑別名映射
+        "paths": {
+            "@workspace/shared": ["./packages/shared/src/index.ts"],
+            "@workspace/shared/*": ["./packages/shared/src/*"]
+        }
     },
-    "include": [
-        "src/**/*"
-    ],
+    // 排除不需要編譯的目錄
     "exclude": [
         "node_modules",
-        "dist",
-        "data"
+        "**/dist",
+        "**/node_modules",
+        "data",
+        ".claude"
     ]
 }
