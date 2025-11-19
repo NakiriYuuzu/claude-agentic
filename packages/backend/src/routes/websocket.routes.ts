@@ -130,7 +130,7 @@ export const createWebSocketRoutes = (
             },
 
             // 連接關閉時
-            close(ws) {
+            async close(ws) {
                 const connectionId = ws.data.connectionId
                 const activeRequests = activeConnections.get(connectionId)
 
@@ -138,6 +138,22 @@ export const createWebSocketRoutes = (
                     `[${connectionId}] WebSocket disconnected, active requests:`,
                     activeRequests?.size || 0
                 )
+
+                // 在清理連接前，flush session queue 確保資料寫入
+                if (sessionRecorder) {
+                    try {
+                        const queueStatus = sessionRecorder.getQueueStatus()
+                        if (queueStatus.queueSize > 0) {
+                            console.log(
+                                `[${connectionId}] Flushing session queue (${queueStatus.queueSize} items)...`
+                            )
+                            await sessionRecorder.flush()
+                            console.log(`[${connectionId}] Session queue flushed`)
+                        }
+                    } catch (error: any) {
+                        console.error(`[${connectionId}] Failed to flush session queue:`, error)
+                    }
+                }
 
                 // 清理連接狀態
                 if (connectionId) {

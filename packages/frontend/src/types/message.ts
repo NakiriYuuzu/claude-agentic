@@ -25,12 +25,6 @@ export type MessageType = 'user' | 'assistant' | 'system' | 'error'
 export type ContentBlockType = 'text' | 'tool_use' | 'tool_result' | 'image' | 'document'
 
 /**
- * 工具狀態
- * 工具執行的當前狀態
- */
-export type ToolStatus = 'pending' | 'running' | 'success' | 'error'
-
-/**
  * 工具 Block 介面
  * 代表一個工具使用和其結果
  */
@@ -49,9 +43,6 @@ export interface ToolBlock {
 
   /** 工具執行是否出錯 */
   is_error?: boolean
-
-  /** 工具執行狀態 */
-  status?: ToolStatus
 
   /** UI 狀態：工具詳情是否展開 */
   expanded?: boolean

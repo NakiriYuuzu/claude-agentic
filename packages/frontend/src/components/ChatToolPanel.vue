@@ -3,44 +3,11 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import type { ToolBlock } from '@/types/message'
-import { Loader2, CheckCircle, XCircle, Clock } from 'lucide-vue-next'
 import { getToolIcon } from '@/lib/toolIcons'
 
 const props = defineProps<{
   toolBlocks: ToolBlock[]
 }>()
-
-// Status icon mapping
-const getStatusIcon = (status: ToolBlock['status']) => {
-  switch (status) {
-    case 'pending': return Clock
-    case 'running': return Loader2
-    case 'success': return CheckCircle
-    case 'error': return XCircle
-    default: return Clock
-  }
-}
-
-// Status color mapping (using Tailwind classes)
-const getStatusClass = (status: ToolBlock['status']) => {
-  switch (status) {
-    case 'pending': return 'text-muted-foreground'
-    case 'running': return 'text-blue-500 animate-spin'
-    case 'success': return 'text-green-500'
-    case 'error': return 'text-destructive'
-    default: return 'text-muted-foreground'
-  }
-}
-
-// Badge variant mapping
-const getBadgeVariant = (status: ToolBlock['status']) => {
-  switch (status) {
-    case 'running': return 'default'
-    case 'success': return 'default'
-    case 'error': return 'destructive'
-    default: return 'outline'
-  }
-}
 
 // Format JSON for display
 const formatJson = (obj: any) => {
@@ -70,18 +37,6 @@ const formatJson = (obj: any) => {
             <Badge variant="outline" class="font-mono text-xs">
               {{ block.name }}
             </Badge>
-
-            <!-- Status icon -->
-            <component
-              :is="getStatusIcon(block.status)"
-              class="w-3.5 h-3.5"
-              :class="getStatusClass(block.status)"
-            />
-
-            <!-- Status badge -->
-            <Badge :variant="getBadgeVariant(block.status)" class="text-xs">
-              {{ block.status }}
-            </Badge>
           </div>
         </AccordionTrigger>
 
@@ -90,7 +45,7 @@ const formatJson = (obj: any) => {
             <!-- Input -->
             <div>
               <p class="text-xs font-semibold mb-1 text-muted-foreground">Input:</p>
-              <ScrollArea class="h-[150px] rounded-md border">
+              <ScrollArea class="rounded-md border">
                 <pre class="text-xs p-3 font-mono">{{ formatJson(block.input) }}</pre>
               </ScrollArea>
             </div>

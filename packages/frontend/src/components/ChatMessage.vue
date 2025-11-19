@@ -56,7 +56,8 @@ const hasTools = computed(() => {
 </script>
 
 <template>
-    <div class="flex gap-3" :class="isUserMessage ? 'flex-row-reverse' : ''">
+    <!-- 訊息進場動畫：從下方滑入 + 淡入 -->
+    <div class="flex gap-3 animate-fade-in-up" :class="isUserMessage ? 'flex-row-reverse' : ''">
         <!-- Avatar -->
         <Avatar class="w-8 h-8">
             <AvatarFallback :class="isUserMessage ? 'bg-blue-500' : 'bg-primary'">
@@ -66,12 +67,16 @@ const hasTools = computed(() => {
         </Avatar>
 
         <!-- Message content -->
-        <div class="flex-1" :class="isUserMessage ? 'flex flex-col items-end' : ''">
+        <div class="flex-1 min-w-0" :class="isUserMessage ? 'flex flex-col items-end' : ''">
             <Card :variant="isUserMessage ? 'outline' : 'default'" class="w-full py-0">
                 <CardContent class="p-4">
-                    <!-- Loading 狀態 -->
-                    <div v-if="isLoadingMessage" class="flex items-center gap-2 text-muted-foreground">
-                        <Loader2 class="w-4 h-4 animate-spin"/>
+                    <!-- Loading 狀態：優化為主題色跳動點點 -->
+                    <div v-if="isLoadingMessage" class="flex items-center gap-3 text-muted-foreground">
+                        <div class="loading-dots">
+                            <span></span>
+                            <span></span>
+                            <span></span>
+                        </div>
                         <span>Claude 正在思考...</span>
                     </div>
 

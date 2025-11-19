@@ -76,6 +76,22 @@ const handleWorkspaceEditSuccess = () => {
 // Watchers
 watch(() => messageStore.messages, handleResize, { deep: true })
 
+// Watch workspace changes to reload sessions
+watch(
+    () => workspaceStore.currentWorkspace,
+    async (newWorkspace, oldWorkspace) => {
+        if (newWorkspace && newWorkspace.workspacePath !== oldWorkspace?.workspacePath) {
+            console.log('[App] Workspace changed, reloading sessions:', newWorkspace.workspacePath)
+            // Clear old sessions
+            sessionStore.clearSessions()
+            // Load new sessions for the selected workspace
+            await (sessionStore as any).fetchSessions({
+                workspace_path: newWorkspace.workspacePath
+            })
+        }
+    }
+)
+
 // Lifecycle
 onMounted(async () => {
     // Connect WebSocket
@@ -86,7 +102,9 @@ onMounted(async () => {
 
     // Load sessions if workspace selected
     if (workspaceStore.currentWorkspace) {
-        await (sessionStore as any).fetchSessions()
+        await (sessionStore as any).fetchSessions({
+            workspace_path: workspaceStore.currentWorkspace.workspacePath
+        })
     }
 })
 </script>
@@ -117,37 +135,40 @@ onMounted(async () => {
                         <!-- Welcome Message -->
                         <div v-if="!hasMessages" class="flex-1 flex items-center justify-center p-6">
                             <div class="text-center space-y-6 max-w-2xl">
+                                <!-- 標題：從下方淡入 -->
                                 <div class="space-y-2">
-                                    <h1 class="text-4xl font-bold">歡迎使用 Claude Agent</h1>
-                                    <p class="text-lg text-muted-foreground">
+                                    <h1 class="text-4xl font-bold animate-fade-in-up delay-200">歡迎使用 Claude Agent</h1>
+                                    <p class="text-lg text-muted-foreground animate-fade-in-up delay-400">
                                         選擇工作空間開始對話
                                     </p>
                                 </div>
 
-                                <div v-if="!workspaceStore.currentWorkspace" class="pt-4">
+                                <!-- 按鈕：縮放彈跳 + 光暈 -->
+                                <div v-if="!workspaceStore.currentWorkspace" class="pt-4 animate-scale-bounce delay-600">
                                     <button
                                         @click="showWorkspaceDialog = true"
-                                        class="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium"
+                                        class="px-6 py-3 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-all font-medium active-press hover-lift"
                                     >
                                         選擇工作空間
                                     </button>
                                 </div>
 
                                 <div v-else class="pt-4 space-y-4">
-                                    <p class="text-sm text-muted-foreground">
+                                    <p class="text-sm text-muted-foreground animate-fade-in-up delay-600">
                                         當前工作空間: {{ workspaceStore.currentWorkspace.workspacePath }}
                                     </p>
-                                    <p class="text-muted-foreground">
+                                    <p class="text-muted-foreground animate-fade-in-up delay-800">
                                         選擇下方建議開始對話
                                     </p>
 
-                                    <!-- 快速提示按鈕 (2 列佈局) -->
+                                    <!-- 快速提示按鈕 (2 列佈局) - 錯落淡入 -->
                                     <div v-if="settingsStore.quickPrompts.length > 0" class="grid grid-cols-2 gap-3 max-w-md mx-auto">
                                         <button
                                             v-for="(prompt, index) in settingsStore.quickPrompts"
                                             :key="index"
                                             @click="handleQuickPrompt(prompt)"
-                                            class="px-4 py-2.5 border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-lg transition-colors text-sm inline-flex items-center gap-2 justify-center"
+                                            class="px-4 py-2.5 border border-input bg-background hover:bg-accent hover:text-accent-foreground rounded-lg transition-all text-sm inline-flex items-center gap-2 justify-center hover-lift active-press animate-fade-in-up"
+                                            :class="`delay-${1000 + index * 100}`"
                                         >
                                             <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <path d="M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z"/>

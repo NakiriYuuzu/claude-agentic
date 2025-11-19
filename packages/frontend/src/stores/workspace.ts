@@ -125,13 +125,22 @@ export const useWorkspaceStore = defineStore(
             currentWorkspace.value = workspaces.value[0] || null
           }
 
-          // 如果當前選中的 Workspace 已被刪除，清空選擇
-          if (
-            currentWorkspace.value &&
-            !workspaces.value.some((w) => w.workspacePath === currentWorkspace.value?.workspacePath)
-          ) {
-            currentWorkspace.value = null
-            currentWorkspaceSettings.value = null
+          // 如果當前選中的 Workspace 存在，同步物件引用
+          if (currentWorkspace.value) {
+            const updatedWorkspace = workspaces.value.find(
+              (w) => w.workspacePath === currentWorkspace.value?.workspacePath
+            )
+
+            if (updatedWorkspace) {
+              // 同步物件引用，確保 currentWorkspace 指向最新的物件
+              console.log('[WorkspaceStore] Syncing currentWorkspace reference:', updatedWorkspace.workspacePath)
+              currentWorkspace.value = updatedWorkspace
+            } else {
+              // 確實不存在了，才清空
+              console.warn('[WorkspaceStore] Current workspace no longer exists, clearing:', currentWorkspace.value.workspacePath)
+              currentWorkspace.value = null
+              currentWorkspaceSettings.value = null
+            }
           }
         } else {
           throw new Error(response.error || '獲取 Workspace 列表失敗')
@@ -164,6 +173,7 @@ export const useWorkspaceStore = defineStore(
 
         // 2. 設定當前 Workspace
         currentWorkspace.value = workspace
+        console.log('[WorkspaceStore] Workspace selected:', workspace.workspacePath)
 
         // 3. 載入詳細設定
         const response = await apiService.getWorkspace(path)
@@ -404,7 +414,9 @@ export const useWorkspaceStore = defineStore(
      * 列表和設定會在應用啟動時重新載入
      */
     persist: {
-      key: 'workspace-store'
+      key: 'workspace-store',
+      pick: ['currentWorkspace'],  // 只持久化當前選中的 workspace
+      debug: true  // 開發階段開啟除錯（測試後可移除）
     }
   }
 )

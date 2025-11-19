@@ -112,6 +112,9 @@ export class WebSocketService {
         this.state = 'disconnected'
         this.ws = null
 
+        // 清理所有正在進行的請求，並觸發錯誤回調
+        this.cleanupPendingRequests('WebSocket 連線已斷開')
+
         if (wasConnected) {
           this.eventHandlers.onDisconnected?.()
           this.attemptReconnect()
@@ -136,6 +139,9 @@ export class WebSocketService {
       this.reconnectTimer = null
     }
 
+    // 清理所有正在進行的請求
+    this.cleanupPendingRequests('WebSocket 連線已主動斷開')
+
     // 關閉連接
     if (this.ws) {
       this.ws.close()
@@ -145,7 +151,6 @@ export class WebSocketService {
     // 清理狀態
     this.state = 'disconnected'
     this.reconnectAttempts = 0
-    this.requestCallbacks.clear()
   }
 
   /**
@@ -301,6 +306,26 @@ export class WebSocketService {
    */
   resetReconnectAttempts(): void {
     this.reconnectAttempts = 0
+  }
+
+  /**
+   * 清理所有正在進行的請求回調
+   *
+   * @param errorMessage 錯誤訊息
+   */
+  private cleanupPendingRequests(errorMessage: string): void {
+    if (this.requestCallbacks.size > 0) {
+      console.log(`[WebSocket] Cleaning up ${this.requestCallbacks.size} pending requests`)
+
+      // 觸發所有請求的錯誤回調
+      this.requestCallbacks.forEach((callbacks, requestId) => {
+        console.log(`[WebSocket] Cancelling request: ${requestId}`)
+        callbacks.onError(errorMessage)
+      })
+
+      // 清空回調映射
+      this.requestCallbacks.clear()
+    }
   }
 }
 

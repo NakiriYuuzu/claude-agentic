@@ -106,9 +106,14 @@ const filterSessions = () => {
     filteredSessions.value = sessions.value
     return
   }
+  const query = searchQuery.value.toLowerCase()
   filteredSessions.value = sessions.value.filter(session =>
-    session.session_id.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    new Date(session.created_at).toLocaleString().includes(searchQuery.value)
+    // 搜尋第一條使用者訊息（主要搜尋目標）
+    session.first_user_message?.toLowerCase().includes(query) ||
+    // 搜尋建立時間（次要搜尋目標）
+    new Date(session.created_at).toLocaleString().includes(searchQuery.value) ||
+    // 搜尋 session ID（備用搜尋目標）
+    session.session_id.toLowerCase().includes(query)
   )
 }
 
@@ -342,9 +347,12 @@ const handleWorkspaceStats = (workspace: WorkspaceListItem) => {
                   <span class="font-medium truncate max-w-[180px]">{{ session.first_user_message || session.session_id }}</span>
                   <span class="ml-auto text-xs text-muted-foreground">{{ new Date(session.created_at).toLocaleDateString() }}</span>
                 </div>
-                <span class="line-clamp-2 whitespace-break-spaces text-xs text-muted-foreground">
-                  {{ session.message_count }} messages
-                </span>
+                <div class="flex items-center justify-between w-full text-xs text-muted-foreground">
+                  <span>{{ session.message_count }} messages</span>
+                  <span v-if="session.total_cost_usd && session.total_cost_usd > 0" class="font-mono">
+                    ${{ session.total_cost_usd.toFixed(4) }}
+                  </span>
+                </div>
               </a>
               <div v-if="sessions.length === 0" class="p-4 text-center text-sm text-muted-foreground">
                 No sessions yet. Start a new chat!

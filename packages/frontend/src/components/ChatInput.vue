@@ -25,13 +25,25 @@ let lastTextareaHeight = ''
 
 // Computed
 const canSend = computed(() => {
-  return wsStore.canQuery &&
-         inputText.value.trim().length > 0 &&
-         workspaceStore.currentWorkspacePath !== null
+  // 當正在查詢時，允許按鈕保持啟用狀態（以顯示 loading 圖標）
+  // 但在 handleSend 中會阻止實際發送
+  const hasWorkspace = workspaceStore.currentWorkspacePath !== null
+  const isConnected = wsStore.state === 'connected'
+  const hasInput = inputText.value.trim().length > 0
+
+  // 查詢中時：只要有連接就啟用按鈕（顯示 loading 圖標）
+  if (wsStore.isQuerying) {
+    return isConnected && hasWorkspace
+  }
+
+  // 非查詢中：需要有輸入內容
+  return isConnected && !wsStore.isQuerying && hasInput && hasWorkspace
 })
 
 // Methods
 const handleSend = async () => {
+  // 防止在查詢中重複發送
+  if (wsStore.isQuerying) return
   if (!canSend.value) return
 
   // 保留完整訊息（包含換行），只 trim 前後空白
@@ -118,12 +130,14 @@ const autoResize = (event?: Event) => {
           class="resize-none min-h-[40px] max-h-[200px]"
         />
 
-        <!-- Send button (right) -->
+        <!-- Send button (right) - 增強動畫效果 -->
         <InputGroupAddon align="inline-end">
           <Button
             @click="handleSend"
             :disabled="!canSend"
             size="icon"
+            class="active-press"
+            :class="{ 'animate-glow-pulse': wsStore.isQuerying }"
           >
             <Loader2 v-if="wsStore.isQuerying" class="w-5 h-5 animate-spin" />
             <Send v-else class="w-5 h-5" />

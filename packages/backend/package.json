@@ -16,7 +16,7 @@
     "@bogeychan/elysia-logger": "^0.1.10",
     "@elysiajs/cors": "latest",
     "@elysiajs/html": "^1.4.0",
-    "@elysiajs/static": "^1.4.6",
+    "@elysiajs/static": "^1.4.7",
     "@elysiajs/swagger": "latest",
     "@sinclair/typebox": "latest",
     "elysia": "latest",

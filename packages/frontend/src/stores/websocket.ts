@@ -124,6 +124,14 @@ export const useWebSocketStore = defineStore('websocket', () => {
         onDisconnected: () => {
           console.log('[WebSocketStore] Disconnected')
           state.value = 'disconnected'
+
+          // 重置查詢狀態
+          if (isQuerying.value) {
+            console.log('[WebSocketStore] Resetting querying state due to disconnection')
+            isQuerying.value = false
+            currentRequestId.value = null
+          }
+
           toast.warning('WebSocket 已斷線')
         },
         onError: (error) => {
@@ -253,6 +261,8 @@ export const useWebSocketStore = defineStore('websocket', () => {
       .then(({ useMessageStore }) => {
         const messageStore = useMessageStore()
 
+        console.log("[handleMessage]Full Original Message", message)
+
         // 根據訊息類型處理
         if (message.type === 'assistant' && message.message?.content) {
           // 更新助手訊息內容
@@ -293,14 +303,18 @@ export const useWebSocketStore = defineStore('websocket', () => {
     // 顯示查詢完成通知
     toast.success('查詢完成', '已收到回應')
 
-    // 動態引入 Message Store 和 Settings Store
+    // 動態引入 Message Store, Settings Store, Session Store 和 Workspace Store
     Promise.all([
       import('./message'),
-      import('./settings')
+      import('./settings'),
+      import('./session'),
+      import('./workspace')
     ])
-      .then(([{ useMessageStore }, { useSettingsStore }]) => {
+      .then(([{ useMessageStore }, { useSettingsStore }, { useSessionStore }, { useWorkspaceStore }]) => {
         const messageStore = useMessageStore()
         const settingsStore = useSettingsStore()
+        const sessionStore = useSessionStore()
+        const workspaceStore = useWorkspaceStore()
 
         // 標記助手訊息完成（已在 handleMessage 處理 result 時完成）
         // 這裡不需要再次調用 markAssistantComplete
@@ -309,6 +323,15 @@ export const useWebSocketStore = defineStore('websocket', () => {
         if (response.sessionId) {
           messageStore.setSessionId(response.sessionId)
           settingsStore.setResume(response.sessionId)
+
+          // 重新載入 session 列表以顯示新建立的 session
+          if (workspaceStore.currentWorkspacePath) {
+            sessionStore.fetchSessions({
+              workspace_path: workspaceStore.currentWorkspacePath
+            }).catch((error) => {
+              console.error('[WebSocketStore] Failed to fetch sessions:', error)
+            })
+          }
         }
       })
       .catch((error) => {
@@ -324,11 +347,17 @@ export const useWebSocketStore = defineStore('websocket', () => {
    */
   function handleError(error: string, messageIndex: number): void {
     console.error('[WebSocketStore] Query error:', error)
+    const toast = useToast()
 
     // 標記查詢結束
     isQuerying.value = false
     currentRequestId.value = null
     lastError.value = error
+
+    // 顯示錯誤通知（除非是斷線錯誤，已經由 onDisconnected 處理）
+    if (!error.includes('連線已斷開') && !error.includes('連線已主動斷開')) {
+      toast.error('查詢失敗', error)
+    }
 
     // 動態引入 Message Store
     import('./message')
@@ -347,7 +376,12 @@ export const useWebSocketStore = defineStore('websocket', () => {
             is_error: true,
             usage: { total_tokens: 0, input_tokens: 0, output_tokens: 0 }
           }
-          msg.content = `錯誤: ${error}`
+          // 如果是斷線錯誤，顯示更友善的訊息
+          if (error.includes('連線已斷開') || error.includes('連線已主動斷開')) {
+            msg.content = '查詢已中斷（WebSocket 連線已斷開）'
+          } else {
+            msg.content = `錯誤: ${error}`
+          }
         }
       })
       .catch((err) => {

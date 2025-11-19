@@ -1,24 +1,14 @@
 import { Marked } from 'marked'
-import { markedHighlight } from 'marked-highlight'
 import hljs from 'highlight.js'
 
 /**
  * 配置 marked 渲染器
  * 整合語法高亮和自定義代碼塊渲染
- * 使用官方 marked-highlight 套件 + 完整 GFM 支援
+ * 使用自定義 renderer 進行語法高亮 + 完整 GFM 支援
  */
 
-// 創建 Marked 實例並配置 highlight.js
-const marked = new Marked(
-    markedHighlight({
-        emptyLangClass: 'hljs',
-        langPrefix: 'hljs language-',
-        highlight(code, lang) {
-            const language = hljs.getLanguage(lang) ? lang : 'plaintext'
-            return hljs.highlight(code, { language }).value
-        }
-    })
-)
+// 創建 Marked 實例
+const marked = new Marked()
 
 // 配置 marked 選項（完整 GFM 支援）
 marked.use({
