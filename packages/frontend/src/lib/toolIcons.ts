@@ -14,6 +14,7 @@ import {
     Sparkles,
     Globe,
     Wrench,
+    CheckSquare,
     type LucideIcon
 } from 'lucide-vue-next'
 
@@ -65,6 +66,10 @@ export const toolIconMap: Record<string, ToolIconConfig> = {
     'WebSearch': {
         icon: Search,
         colorClass: 'text-teal-600 dark:text-teal-400'
+    },
+    'TodoWrite': {
+        icon: CheckSquare,
+        colorClass: 'text-emerald-600 dark:text-emerald-400'
     }
 }
 

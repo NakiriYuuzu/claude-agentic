@@ -444,6 +444,48 @@ export const useSessionStore = defineStore('session', () => {
 
         // 處理 user 訊息
         if (msg.message_type === 'user') {
+          // 🔥 檢查是否為 subagent_task（檢查 parent_tool_use_id）
+          if (msg.message_subtype === 'subagent_task' || content.parent_tool_use_id) {
+            // 提取 prompt 資訊
+            const message = content.message || content
+            let text = ''
+
+            if (message.content) {
+              if (Array.isArray(message.content)) {
+                text = message.content
+                  .filter((block: any) => block.type === 'text')
+                  .map((block: any) => block.text)
+                  .join('\n\n')
+              } else if (typeof message.content === 'string') {
+                text = message.content
+              }
+            } else if (typeof message === 'string') {
+              text = message
+            }
+
+            // 找到最後一個 assistant 訊息並添加 subagent prompt
+            const lastAssistantIndex = converted
+              .map((m, i) => (m.type === 'assistant' ? i : -1))
+              .filter((i) => i >= 0)
+              .pop()
+
+            if (lastAssistantIndex !== undefined && converted[lastAssistantIndex]) {
+              const lastAssistant = converted[lastAssistantIndex]
+              if (!lastAssistant.subagentPrompts) {
+                lastAssistant.subagentPrompts = []
+              }
+              lastAssistant.subagentPrompts.push({
+                text: text,
+                parent_tool_use_id: content.parent_tool_use_id || '',
+                timestamp: msg.created_at
+              })
+            }
+
+            // 跳過，不作為 UserMessage 加入
+            continue
+          }
+
+          // 一般 user 訊息處理
           const message = content.message || content
           let text = ''
 
@@ -515,6 +557,7 @@ export const useSessionStore = defineStore('session', () => {
               type: 'assistant',
               content: text,
               tools: tools,
+              subagentPrompts: [],
               toolsExpanded: false,
               isStreaming: false,
               result: null,

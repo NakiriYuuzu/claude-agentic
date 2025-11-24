@@ -6,6 +6,7 @@ import type { Message, AssistantMessage } from '@/types/message'
 import { renderMarkdown } from '@/lib/markdown'
 import { useCodeCopy } from '@/composables/useCodeCopy'
 import ChatToolPanel from './ChatToolPanel.vue'
+import SubagentPanel from './SubagentPanel.vue'
 import { User, Bot, ChevronDown, Loader2 } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 
@@ -52,6 +53,11 @@ const assistantMessage = computed(() => {
 // Check if has tools
 const hasTools = computed(() => {
     return assistantMessage.value && assistantMessage.value.tools && assistantMessage.value.tools.length > 0
+})
+
+// Check if has subagent prompts
+const hasSubagentPrompts = computed(() => {
+    return assistantMessage.value && assistantMessage.value.subagentPrompts && assistantMessage.value.subagentPrompts.length > 0
 })
 </script>
 
@@ -100,6 +106,12 @@ const hasTools = computed(() => {
                             <ChatToolPanel v-if="assistantMessage" :toolBlocks="assistantMessage.tools"/>
                         </CollapsibleContent>
                     </Collapsible>
+
+                    <!-- Subagent Panel -->
+                    <SubagentPanel
+                        v-if="hasSubagentPrompts && assistantMessage"
+                        :prompts="assistantMessage.subagentPrompts!"
+                    />
 
                     <!-- Cost & Tokens info (assistant only) -->
                     <div v-if="assistantMessage && assistantMessage.result"

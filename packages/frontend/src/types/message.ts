@@ -7,6 +7,27 @@
  */
 
 /**
+ * Todo 項目狀態
+ * Claude SDK TodoWrite 工具的任務狀態
+ */
+export type TodoStatus = 'pending' | 'in_progress' | 'completed'
+
+/**
+ * Todo 項目介面
+ * 代表 TodoWrite 工具中的單個待辦事項
+ */
+export interface TodoItem {
+  /** 任務描述（命令式，例如：「Run tests」） */
+  content: string
+
+  /** 任務狀態 */
+  status: TodoStatus
+
+  /** 任務進行中的描述（現在進行式，例如：「Running tests」） */
+  activeForm: string
+}
+
+/**
  * 訊息角色類型
  * 定義訊息的發送者角色
  */
@@ -87,8 +108,29 @@ export interface UserMessage {
   /** 訊息內容（相容舊格式） */
   content?: string
 
+  /** 訊息子類型 */
+  subtype?: 'subagent_task' | null
+
+  /** 父工具使用 ID（用於 subagent prompts） */
+  parent_tool_use_id?: string
+
   /** 是否處於編輯狀態 */
   isEditing?: boolean
+}
+
+/**
+ * Subagent Prompt 介面
+ * 代表 Subagent 的任務提示
+ */
+export interface SubagentPrompt {
+  /** Prompt 文字內容 */
+  text: string
+
+  /** 父工具使用 ID */
+  parent_tool_use_id: string
+
+  /** 時間戳記 */
+  timestamp?: string
 }
 
 /**
@@ -104,6 +146,9 @@ export interface AssistantMessage {
 
   /** 工具區塊列表 */
   tools: ToolBlock[]
+
+  /** Subagent Prompts 列表 */
+  subagentPrompts?: SubagentPrompt[]
 
   /** 工具面板是否展開 */
   toolsExpanded?: boolean

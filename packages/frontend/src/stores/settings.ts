@@ -79,7 +79,7 @@ export const useSettingsStore = defineStore(
     /**
      * 組合查詢選項（用於傳遞給 API）
      *
-     * @returns QueryOptions 物件（自動過濾 undefined）
+     * @returns QueryOptions 物件（自動過濾 undefined 和 null）
      *
      * @example
      * ```typescript
@@ -88,12 +88,16 @@ export const useSettingsStore = defineStore(
      * // { model: 'haiku', permissionMode: 'default', maxTurns: 50 }
      * ```
      */
-    const queryOptions = computed<QueryOptions>(() => ({
-      model: model.value,
-      permissionMode: permissionMode.value,
-      maxTurns: maxTurns.value || undefined,
-      resume: resume.value
-    }))
+    const queryOptions = computed<QueryOptions>(() => {
+      const options: QueryOptions = {
+        model: model.value,
+        permissionMode: permissionMode.value
+      }
+      // 只在有值時才添加 maxTurns 和 resume（避免 null 值）
+      if (maxTurns.value) options.maxTurns = maxTurns.value
+      if (resume.value) options.resume = resume.value
+      return options
+    })
 
     // ===========================
     // Actions (普通函數)

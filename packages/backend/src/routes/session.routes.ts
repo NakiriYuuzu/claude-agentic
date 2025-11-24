@@ -153,6 +153,81 @@ export const createSessionRoutes = (db: DatabaseService) => {
         )
 
         /**
+         * GET /api/sessions/active
+         * 取得所有活躍的 Sessions（用於多 Session 管理）
+         *
+         * 活躍定義：status = 'running' 或最近 24 小時內更新的 Sessions
+         */
+        .get(
+            '/active',
+            async ({ query, set, log, fileLogger, requestId }) => {
+                try {
+                    const { workspace_path } = query
+
+                    // 計算 24 小時前的時間戳
+                    const yesterday = new Date()
+                    yesterday.setHours(yesterday.getHours() - 24)
+                    const dateThreshold = yesterday.toISOString()
+
+                    // 查詢活躍的 Sessions：running 或最近更新的
+                    const result = sessionService.listSessions({
+                        workspace_path,
+                        limit: 100, // 最多返回 100 個活躍 Session
+                        offset: 0,
+                        order_by: 'updated_at',
+                        order: 'desc'
+                    })
+
+                    // 過濾出真正活躍的 Sessions
+                    const activeSessions = result.sessions.filter(session => {
+                        return session.status === 'running' || session.updated_at >= dateThreshold
+                    })
+
+                    const activeLog = {
+                        event: 'active_sessions_retrieved',
+                        requestId,
+                        workspace_path,
+                        total_active: activeSessions.length,
+                        running: activeSessions.filter(s => s.status === 'running').length
+                    }
+                    log.info(activeLog, 'Active sessions retrieved')
+                    fileLogger.info(activeLog, 'Active sessions retrieved')
+
+                    return {
+                        success: true,
+                        data: {
+                            sessions: activeSessions,
+                            total: activeSessions.length
+                        }
+                    }
+                } catch (error: any) {
+                    set.status = 500
+
+                    const errorLog = {
+                        event: 'active_sessions_error',
+                        requestId,
+                        error: error.message
+                    }
+                    log.error(errorLog, 'Failed to get active sessions')
+                    fileLogger.error(errorLog, 'Failed to get active sessions')
+
+                    return {
+                        success: false,
+                        error: error.message || 'Failed to get active sessions'
+                    }
+                }
+            },
+            {
+                query: ListSessionsQuerySchema,
+                detail: {
+                    summary: '取得活躍 Sessions',
+                    description: '返回所有活躍的 Sessions（running 或最近 24 小時內更新）',
+                    tags: ['Sessions']
+                }
+            }
+        )
+
+        /**
          * GET /api/sessions/:session_id
          * 取得單一 session 詳情
          */

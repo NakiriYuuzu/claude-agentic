@@ -19,10 +19,11 @@ export class AgentService {
     /**
      * 執行 Agent 查詢
      * @param request 查詢請求
+     * @param abortController 可選的 AbortController 用於取消查詢
      * @returns Async Generator 串流結果
      */
-    async *executeQuery(request: QueryRequest) {
-        const { workspacePath, prompt, options = {} } = request
+    async *executeQuery(request: QueryRequest & { abortController?: AbortController }) {
+        const { workspacePath, prompt, options = {}, abortController } = request
 
         logger.info(
             {
@@ -100,9 +101,14 @@ export class AgentService {
             )
 
             // SDK 自動處理 resume 和 continue 選項
+            // 如果提供了 AbortController，將其加入 options
+            const queryOptions = abortController
+                ? { ...mergedOptions, abortController }
+                : mergedOptions
+
             const queryResult = query({
                 prompt,
-                options: mergedOptions as any
+                options: queryOptions as any
             })
 
             // 4. 串流結果
@@ -157,6 +163,18 @@ export class AgentService {
             // 明確結束 generator（修復 ERR_INCOMPLETE_CHUNKED_ENCODING）
             return
         } catch (error: any) {
+            // 處理 AbortError（用戶取消操作）
+            if (error.name === 'AbortError' || error.message?.includes('abort')) {
+                logger.info(
+                    {
+                        event: 'agent_query_cancelled',
+                        workspacePath
+                    },
+                    'Agent query cancelled by user'
+                )
+                throw new Error('Query cancelled by user')
+            }
+
             logger.error(
                 {
                     event: 'agent_query_error',

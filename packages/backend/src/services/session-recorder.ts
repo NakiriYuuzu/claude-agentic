@@ -20,7 +20,7 @@ export class SessionRecorder {
      */
     async *recordQuery(
         agentService: AgentService,
-        request: QueryRequest
+        request: QueryRequest & { abortController?: AbortController }
     ): AsyncGenerator<SDKMessage, void, unknown> {
         let currentSessionId: string | null = null
         let hasError = false
@@ -130,6 +130,19 @@ export class SessionRecorder {
                 'Message missing session_id'
             )
             return
+        }
+
+        // 🔥 檢測並標記 Subagent Task
+        if (message.type === 'user' && message.parent_tool_use_id) {
+            message.subtype = 'subagent_task'
+            logger.debug(
+                {
+                    event: 'recorder_subagent_task_detected',
+                    session_id: sessionId,
+                    parent_tool_use_id: message.parent_tool_use_id
+                },
+                'Subagent task detected and marked'
+            )
         }
 
         switch (message.type) {

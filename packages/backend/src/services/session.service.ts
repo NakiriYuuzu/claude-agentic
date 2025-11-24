@@ -308,7 +308,8 @@ export class SessionService {
                 values.push(result.status)
             }
             if (result.total_cost_usd !== undefined) {
-                updates.push('total_cost_usd = ?')
+                // 累加費用而不是覆蓋，這樣多次查詢的費用會正確累計
+                updates.push('total_cost_usd = COALESCE(total_cost_usd, 0) + ?')
                 values.push(result.total_cost_usd)
             }
             if (result.num_turns !== undefined) {

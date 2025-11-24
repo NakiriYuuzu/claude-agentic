@@ -15,6 +15,7 @@ import type {
     Message,
     UserMessage,
     AssistantMessage,
+    SubagentPrompt,
     ToolBlock,
     ContentBlock,
     MessageResult
@@ -320,6 +321,38 @@ export const useMessageStore = defineStore('message', () => {
     }
 
     /**
+     * 添加 Subagent Prompt 到助手訊息
+     *
+     * @param messageIndex - 訊息索引
+     * @param prompt - Subagent Prompt 資訊
+     */
+    function addSubagentPrompt(messageIndex: number, prompt: SubagentPrompt): void {
+        if (messageIndex === -1 || !messages.value[messageIndex]) {
+            console.warn('[MessageStore] Invalid message index:', messageIndex)
+            return
+        }
+
+        const msg = messages.value[messageIndex]
+        if (msg.type !== 'assistant') {
+            console.warn('[MessageStore] Message at index is not assistant type:', messageIndex)
+            return
+        }
+
+        // 初始化 subagentPrompts 陣列
+        if (!msg.subagentPrompts) {
+            msg.subagentPrompts = []
+        }
+
+        // 添加 prompt
+        msg.subagentPrompts.push(prompt)
+        console.log('[MessageStore] Added subagent prompt:', {
+            messageIndex,
+            parent_tool_use_id: prompt.parent_tool_use_id,
+            text_length: prompt.text.length
+        })
+    }
+
+    /**
      * 更新工具區塊資訊
      *
      * @param messageIndex - 訊息索引
@@ -527,6 +560,7 @@ export const useMessageStore = defineStore('message', () => {
         updateAssistantMessage,
         markAssistantComplete,
         addToolBlock,
+        addSubagentPrompt,
         updateToolBlock,
         clearMessages,
         setMessages,

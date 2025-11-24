@@ -34,7 +34,13 @@ export type WSErrorResponse = {
     error: string
 }
 
-export type WSResponse = WSQueryResponse | WSCompleteResponse | WSErrorResponse
+export type WSCancelledResponse = {
+    requestId: string
+    type: 'cancelled'
+    message: string
+}
+
+export type WSResponse = WSQueryResponse | WSCompleteResponse | WSErrorResponse | WSCancelledResponse
 
 /**
  * WebSocket 訊息驗證 Schema
@@ -59,10 +65,23 @@ const WSQueryRequestSchema = t.Object({
     }))
 })
 
+const WSCancelRequestSchema = t.Object({
+    type: t.Literal('cancel'),
+    requestId: t.String()
+})
+
+const WSMessageSchema = t.Union([WSQueryRequestSchema, WSCancelRequestSchema])
+
 /**
  * 全局狀態管理 - 使用 Map 追蹤活躍連接
  */
 const activeConnections = new Map<string, Set<string>>()
+
+/**
+ * AbortController 追蹤 - 用於取消執行中的查詢
+ * Key: requestId, Value: AbortController
+ */
+const activeAbortControllers = new Map<string, AbortController>()
 
 export const createWebSocketRoutes = (
     settingsService: SettingsService,
@@ -76,8 +95,8 @@ export const createWebSocketRoutes = (
          * 即時串流 Agent 查詢結果
          */
         .ws('/ws', {
-            // 訊息驗證 schema
-            body: WSQueryRequestSchema,
+            // 訊息驗證 schema (支援 query 和 cancel 類型)
+            body: WSMessageSchema,
 
             // 連接建立時
             open(ws) {
@@ -119,6 +138,8 @@ export const createWebSocketRoutes = (
                 try {
                     if (data.type === 'query') {
                         await handleQueryRequest(ws, data, connectionId, activeRequests)
+                    } else if (data.type === 'cancel') {
+                        handleCancelRequest(ws, data)
                     }
                 } catch (error: any) {
                     console.error(`[${connectionId}] WebSocket message error:`, error)
@@ -164,6 +185,41 @@ export const createWebSocketRoutes = (
         })
 
     /**
+     * 處理取消請求
+     */
+    function handleCancelRequest(ws: any, request: { requestId: string }) {
+        const { requestId } = request
+
+        console.log(`[${requestId}] Cancel request received`)
+
+        const abortController = activeAbortControllers.get(requestId)
+
+        if (abortController) {
+            // 調用 abort() 取消查詢
+            abortController.abort()
+            console.log(`[${requestId}] Query cancelled by user`)
+
+            // 發送取消確認訊息
+            const cancelledResponse: WSCancelledResponse = {
+                requestId,
+                type: 'cancelled',
+                message: 'Query cancelled by user'
+            }
+            ws.send(JSON.stringify(cancelledResponse))
+        } else {
+            // 請求不存在或已完成
+            console.log(`[${requestId}] Cannot cancel: request not found or already completed`)
+
+            const errorResponse: WSErrorResponse = {
+                requestId,
+                type: 'error',
+                error: 'Request not found or already completed'
+            }
+            ws.send(JSON.stringify(errorResponse))
+        }
+    }
+
+    /**
      * 處理查詢請求
      */
     async function handleQueryRequest(
@@ -175,8 +231,12 @@ export const createWebSocketRoutes = (
         const { requestId, workspacePath, prompt, options = {} } = request
         const startTime = Date.now()
 
+        // 創建 AbortController 用於取消查詢
+        const abortController = new AbortController()
+
         // 標記請求開始
         activeRequests.add(requestId)
+        activeAbortControllers.set(requestId, abortController)
 
         try {
             console.log(`[${requestId}] Query started:`, {
@@ -190,12 +250,14 @@ export const createWebSocketRoutes = (
                 ? sessionRecorder.recordQuery(agentService, {
                     workspacePath,
                     prompt,
-                    options
+                    options,
+                    abortController
                 })
                 : agentService.executeQuery({
                     workspacePath,
                     prompt,
-                    options
+                    options,
+                    abortController
                 })
 
             // 用於記錄使用者輸入訊息（如果使用 sessionRecorder）
@@ -274,8 +336,9 @@ export const createWebSocketRoutes = (
             ws.send(JSON.stringify(errorResponse))
 
         } finally {
-            // 移除請求標記
+            // 移除請求標記和 AbortController
             activeRequests.delete(requestId)
+            activeAbortControllers.delete(requestId)
         }
     }
 }

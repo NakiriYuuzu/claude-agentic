@@ -208,6 +208,11 @@ export class WebSocketService {
       const completeData = data as WebSocketCompleteResponse
       callbacks.onComplete(completeData)
       this.requestCallbacks.delete(requestId)
+    } else if ('type' in data && data.type === 'cancelled') {
+      // 處理取消訊息
+      console.log('[WebSocket] Query cancelled:', requestId)
+      callbacks.onError('查詢已被使用者取消')
+      this.requestCallbacks.delete(requestId)
     } else if ('type' in data && data.type === 'error') {
       const errorData = data as WebSocketErrorResponse
       callbacks.onError(errorData.error)
@@ -277,6 +282,37 @@ export class WebSocketService {
           throw error
         }
       }
+    }
+  }
+
+  /**
+   * 取消查詢
+   *
+   * @param requestId 要取消的請求 ID
+   */
+  cancelQuery(requestId: string): void {
+    if (!this.ws || this.state !== 'connected') {
+      console.warn('[WebSocket] Cannot cancel: not connected')
+      return
+    }
+
+    // 檢查請求是否存在
+    if (!this.requestCallbacks.has(requestId)) {
+      console.warn('[WebSocket] Cannot cancel: request not found:', requestId)
+      return
+    }
+
+    // 發送取消訊息
+    const cancelRequest = {
+      type: 'cancel',
+      requestId
+    }
+
+    try {
+      this.ws.send(JSON.stringify(cancelRequest))
+      console.log('[WebSocket] Cancel request sent:', requestId)
+    } catch (error) {
+      console.error('[WebSocket] Failed to send cancel request:', error)
     }
   }
 

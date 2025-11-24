@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useMagicKeys, whenever } from '@vueuse/core'
 import { Toaster } from 'vue-sonner'
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar'
 import TopBar from '@/components/TopBar.vue'
@@ -8,21 +9,32 @@ import ChatMessages from '@/components/ChatMessages.vue'
 import ChatInput from '@/components/ChatInput.vue'
 import WorkspaceDialog from '@/components/WorkspaceDialog.vue'
 import WorkspaceEditDialog from '@/components/WorkspaceEditDialog.vue'
+import TodoFloatingPanel from '@/components/TodoFloatingPanel.vue'
 import { useWorkspaceStore } from '@/stores/workspace'
 import type { WorkspaceListItem } from '@workspace/shared'
-import { useMessageStore } from '@/stores/message'
+import { useSessionManagerStore } from '@/stores/session-manager'
 import { useWebSocketStore } from '@/stores/websocket'
 import { useSettingsStore } from '@/stores/settings'
 import { useSessionStore } from '@/stores/session'
 import { colorMode } from '@/stores/settings'
+import { useTodoPanel } from '@/composables/useTodoPanel'
+import { toast } from 'vue-sonner'
 import 'vue-sonner/style.css'
 
 // Stores
 const workspaceStore = useWorkspaceStore()
-const messageStore = useMessageStore()
+const sessionManager = useSessionManagerStore()
 const wsStore = useWebSocketStore()
 const settingsStore = useSettingsStore()
 const sessionStore = useSessionStore()
+
+// Todo Panel
+const { togglePanel } = useTodoPanel()
+
+// 快捷鍵: Ctrl+T 或 Cmd+T 切換 Todo 面板
+const keys = useMagicKeys()
+whenever(keys['Ctrl+T'], togglePanel)
+whenever(keys['Meta+T'], togglePanel)
 
 // Refs
 const chatMessagesRef = ref<InstanceType<typeof ChatMessages>>()
@@ -33,9 +45,14 @@ const showWorkspaceEditDialog = ref(false)
 const editingWorkspace = ref<WorkspaceListItem | null>(null)
 
 // Computed
-const hasMessages = computed(() => messageStore.messages.length > 0)
+const hasMessages = computed(() => {
+    const activeStore = sessionManager.activeMessageStore
+    return activeStore ? activeStore.messages.length > 0 : false
+})
 const lastUserMessage = computed(() => {
-    const userMessages = messageStore.messages.filter(m => m.type === 'user')
+    const activeStore = sessionManager.activeMessageStore
+    if (!activeStore) return ''
+    const userMessages = activeStore.messages.filter(m => m.type === 'user')
     return userMessages[userMessages.length - 1]?.text || ''
 })
 
@@ -45,16 +62,39 @@ const handleResize = () => {
 }
 
 const handleQuickPrompt = async (prompt: string) => {
-    // Send the prompt directly
-    await wsStore.sendQuery(prompt, settingsStore.queryOptions)
+    // 快照當前 activeSessionId，避免後續切換影響訊息歸屬
+    let targetSessionId = sessionManager.activeSessionId
+
+    // 檢查是否有活躍 Session，若無則自動創建
+    if (!targetSessionId) {
+        // 檢查是否有選擇工作空間
+        if (!workspaceStore.currentWorkspacePath) {
+            toast.error('請先選擇工作空間')
+            return
+        }
+
+        // 自動創建新 Session 並保存 ID
+        targetSessionId = sessionManager.createSession(workspaceStore.currentWorkspacePath)
+
+        // 清除 resume 參數，因為這是全新的 Session
+        settingsStore.setResume(null)
+
+        console.log('[App] Auto-created session for quick prompt:', targetSessionId)
+    }
+
+    // 使用保存的 targetSessionId，而不是依賴 activeSessionId
+    await wsStore.sendQuery(targetSessionId, prompt, settingsStore.queryOptions)
 }
 
 const handleEditLastMessage = () => {
+    const activeStore = sessionManager.activeMessageStore
+    if (!activeStore) return
+
     // Find last user message index
-    const lastUserIndex = messageStore.messages.findLastIndex(m => m.type === 'user')
+    const lastUserIndex = activeStore.messages.findLastIndex(m => m.type === 'user')
     if (lastUserIndex !== -1) {
         // Remove last user message and all messages after it
-        messageStore.messages.splice(lastUserIndex)
+        activeStore.messages.splice(lastUserIndex)
     }
 }
 
@@ -74,7 +114,7 @@ const handleWorkspaceEditSuccess = () => {
 }
 
 // Watchers
-watch(() => messageStore.messages, handleResize, { deep: true })
+watch(() => sessionManager.activeMessageStore?.messages, handleResize, { deep: true })
 
 // Watch workspace changes to reload sessions
 watch(
@@ -94,18 +134,39 @@ watch(
 
 // Lifecycle
 onMounted(async () => {
-    // Connect WebSocket
+    console.log('[App] Initializing application...')
+
+    // 1. Connect WebSocket
     await wsStore.connect()
 
-    // Load workspaces
+    // 2. Load workspaces
     await (workspaceStore as any).fetchWorkspaces()
 
-    // Load sessions if workspace selected
+    // 3. Load historical sessions from Backend Database
     if (workspaceStore.currentWorkspace) {
         await (sessionStore as any).fetchSessions({
             workspace_path: workspaceStore.currentWorkspace.workspacePath
         })
+
+        // 4. Restore sessions to SessionManager from Backend
+        // 將 Backend 的 Session 添加到 SessionManager（不載入完整訊息）
+        for (const session of sessionStore.sessions) {
+            const firstMessage = session.first_user_message || 'New Chat'
+            const name = firstMessage.slice(0, 30) + (firstMessage.length > 30 ? '...' : '')
+
+            sessionManager.addHistoricalSession(
+                session.session_id,
+                workspaceStore.currentWorkspace.workspacePath,
+                name,
+                session.message_count || 0,
+                new Date(session.updated_at.replace(' ', 'T') + 'Z')  // 轉換為 ISO 格式並標記為 UTC
+            )
+        }
+
+        console.log('[App] Restored', sessionStore.sessions.length, 'sessions from Backend Database')
     }
+
+    console.log('[App] Initialization complete')
 })
 </script>
 
@@ -203,6 +264,9 @@ onMounted(async () => {
                 :workspace-path="editingWorkspace.workspacePath"
                 @success="handleWorkspaceEditSuccess"
             />
+
+            <!-- Todo Floating Panel -->
+            <TodoFloatingPanel />
 
             <!-- Toast Notifications -->
             <Toaster
