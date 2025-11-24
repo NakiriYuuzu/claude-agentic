@@ -341,7 +341,7 @@ claude-agentic/
 │   │   ├── package.json
 │   │   └── tsconfig.json
 │   │
-│   └── frontend/                    # Frontend Vue.js SPA
+│   └── client/                    # Frontend Vue.js SPA
 │       ├── public/
 │       │   ├── index.html          # Vue.js 3 SPA
 │       │   ├── app.js              # Main application logic
@@ -370,7 +370,7 @@ claude-agentic/
 **Package Structure**:
 - `@workspace/shared`: Shared types and schemas (compiled to dist/)
 - `@workspace/backend`: Backend API service (depends on shared)
-- `@workspace/frontend`: Frontend SPA (no npm dependencies, uses CDN)
+- `@workspace/client`: Frontend SPA (no npm dependencies, uses CDN)
 
 **Special Directories**:
 - `.claude/`: Claude SDK auto-generated session data (gitignored)

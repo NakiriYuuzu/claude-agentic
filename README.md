@@ -48,7 +48,7 @@ claude-agentic/
 │   │   │   └── index.ts    # 應用入口
 │   │   └── dist/           # 編譯輸出
 │   │
-│   └── frontend/            # 前端應用
+│   └── client/            # 前端應用
 │       └── public/          # Vue.js 3 SPA
 │
 ├── data/                    # 資料目錄（gitignored）
@@ -69,7 +69,7 @@ claude-agentic/
 - **依賴**：shared + Elysia.js + Claude SDK + SQLite
 - **特點**：依賴 shared package，提供 REST API 和 WebSocket
 
-#### 🎨 `@workspace/frontend`
+#### 🎨 `@workspace/client`
 - **用途**：Vue.js 3 前端應用
 - **依賴**：無（完全基於 CDN）
 - **特點**：由 backend 的靜態服務提供

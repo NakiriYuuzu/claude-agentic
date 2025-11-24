@@ -25,7 +25,7 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const projectRoot = join(__dirname, '../../..')
-const frontendPublicPath = join(projectRoot, 'packages/frontend/public')
+const frontendPublicPath = join(projectRoot, 'packages/client/public')
 
 // 從環境變數讀取設定
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000

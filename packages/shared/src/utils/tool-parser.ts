@@ -3,7 +3,7 @@
  * 解析 Claude SDK 訊息中的工具使用和結果
  */
 
-import type { ContentBlock, ToolExecution, ToolIconConfig } from '../types/frontend.types'
+import type { ContentBlock, ToolExecution, ToolIconConfig } from '../types/client.types'
 
 /**
  * 解析工具 blocks

@@ -6,14 +6,41 @@
 
 ---
 
+## [0.6.0] - 2025-11-25
+
+### 💥 破壞性變更：Package 重命名
+
+**frontend → client 重命名完成（完整一致性方案）**
+
+#### 📦 核心變更
+- **目錄重命名**: `packages/frontend` → `packages/client`
+- **Package 名稱**: `@workspace/frontend` → `@workspace/client`
+- **類型文件**: `frontend.types.ts` → `client.types.ts`
+- **靜態路徑**: backend 更新為 `packages/client/public`
+
+#### 🔧 技術細節
+- 保留 git 歷史記錄（使用 `git mv`）
+- 更新所有內部引用（shared package 導入語句）
+- 重新建構所有 packages（清理 + 重裝依賴）
+- 完整文檔更新（CLAUDE.md, README.md, CHANGELOG.md）
+
+#### ⚠️ 遷移指南
+1. 拉取最新代碼: `git pull origin main`
+2. 清理依賴: `rm -rf node_modules packages/*/node_modules`
+3. 重新安裝: `bun install`
+4. 重新建構: `bun run build`
+5. 啟動開發: `bun run dev`
+
+---
+
 ## [0.5.1] - 2025-11-10
 
 ### ✨ 重大功能：完成前端 Vue 3 現代化遷移
 
-**將 old-web 的所有功能遷移到 frontend (Vue 3 + TypeScript + shadcn-vue)**
+**將 old-web 的所有功能遷移到 client (Vue 3 + TypeScript + shadcn-vue)**
 
 #### 📦 新增 Shared Package 類型定義
-- `frontend.types.ts`: DisplayMessage, ToolExecution, QueryResult, WSMessage
+- `client.types.ts`: DisplayMessage, ToolExecution, QueryResult, WSMessage
 - `tool-parser.ts`: 工具解析工具函數（parseToolBlocks, extractTextContent）
 - `toolIcons.ts`: 工具圖示映射（支援 10+ 工具類型）
 - `dateUtils.ts`: 日期格式化工具（相對時間、標準格式、時長轉換）
@@ -36,7 +63,7 @@
 - **websocket.service.ts**: WebSocket 連接管理、自動重連機制
 
 #### 🐛 修復
-- 修復 `@workspace/shared` 依賴問題，添加到 frontend package.json
+- 修復 `@workspace/shared` 依賴問題，添加到 client package.json
 - 修復類型導入錯誤
 
 #### 📝 技術細節
@@ -48,7 +75,7 @@
 
 #### 🗂️ 檔案結構
 ```
-packages/frontend/
+packages/client/
 ├── src/
 │   ├── components/       # 13 個 Vue 組件
 │   ├── lib/             # 工具函數（toolIcons, dateUtils）
@@ -86,7 +113,7 @@ packages/frontend/
    - SQLite 資料庫管理
    - 依賴 @workspace/shared
 
-3. **@workspace/frontend** - 前端應用
+3. **@workspace/client** - 前端應用
    - Vue.js 3 SPA
    - CDN 依賴（無 npm 依賴）
    - 由 backend 靜態服務提供
@@ -105,8 +132,8 @@ packages/frontend/
 - 移除 shared 對 backend 框架的依賴
 
 **靜態檔案**：
-- 前端檔案遷移至 `packages/frontend/public/`
-- Backend 靜態服務路徑更新為 `../frontend/public`
+- 前端檔案遷移至 `packages/client/public/`
+- Backend 靜態服務路徑更新為 `../client/public`
 
 #### 📁 目錄結構變更
 
@@ -122,7 +149,7 @@ claude-agentic/
 ├── packages/
 │   ├── shared/          # 共享程式碼（新增）
 │   ├── backend/         # 後端（從 src/ 遷移）
-│   └── frontend/        # 前端（從 public/ 遷移）
+│   └── client/        # 前端（從 public/ 遷移）
 ├── data/                # 資料目錄（保持根目錄）
 └── .claude/             # SDK 資料（保持根目錄）
 ```
@@ -160,13 +187,13 @@ claude-agentic/
 - Schema 從 Elysia 改為純 TypeBox
 
 **Frontend**：
-- `public/` → `packages/frontend/public/`
-- 新增 `packages/frontend/README.md`
+- `public/` → `packages/client/public/`
+- 新增 `packages/client/README.md`
 
 #### 📚 文件更新
 
 - `README.md` - 新增 Monorepo 架構說明
-- `packages/frontend/README.md` - 新增前端文件
+- `packages/client/README.md` - 新增前端文件
 - `CHANGELOG.md` - 本版本變更記錄
 
 #### ⚠️ 已知問題

@@ -2,7 +2,7 @@
 export * from './types/query.types'
 export * from './types/session.types'
 export * from './types/settings.types'
-export * from './types/frontend.types'
+export * from './types/client.types'
 
 // Schemas
 export * from './schemas/session.schema'
